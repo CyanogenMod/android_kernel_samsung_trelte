@@ -150,7 +150,10 @@ static bool migrate_one_irq(struct irq_desc *desc)
 {
 	struct irq_data *d = irq_desc_get_irq_data(desc);
 	const struct cpumask *affinity = d->affinity;
+<<<<<<< HEAD
 	struct irq_chip *c;
+=======
+>>>>>>> 82b1ae6... arm: irq: warn only when affinity really breaks
 	bool ret = false;
 
 	/*
@@ -165,11 +168,15 @@ static bool migrate_one_irq(struct irq_desc *desc)
 		ret = true;
 	}
 
+<<<<<<< HEAD
 	c = irq_data_get_irq_chip(d);
 	if (!c->irq_set_affinity)
 		pr_debug("IRQ%u: unable to set affinity\n", d->irq);
 	else if (c->irq_set_affinity(d, affinity, true) == IRQ_SET_MASK_OK && ret)
 		cpumask_copy(d->affinity, affinity);
+=======
+	__irq_set_affinity_locked(d, affinity);
+>>>>>>> 82b1ae6... arm: irq: warn only when affinity really breaks
 
 	return ret;
 }
