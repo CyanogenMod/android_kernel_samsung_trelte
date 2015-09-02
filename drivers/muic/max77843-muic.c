@@ -42,11 +42,7 @@
 #include <linux/muic/muic_notifier.h>
 #endif /* CONFIG_MUIC_NOTIFIER */
 
-#if !defined(CONFIG_SEC_FACTORY)
-#if defined(CONFIG_MUIC_ADCMODE_SWITCH_WA)
 #include <linux/delay.h>
-#endif /* CONFIG_MUIC_ADCMODE_SWITCH_WA */
-#endif /* !CONFIG_SEC_FACTORY */
 
 #if defined(CONFIG_MUIC_MAX77843_RESET_WA)
 #include <linux/mfd/samsung/irq.h>
@@ -1457,7 +1453,10 @@ static int max77843_muic_handle_detach(struct max77843_muic_data *muic_data)
 	max77843_muic_set_afc_ready(muic_data, false);
 	muic_data->is_afc_muic_prepare = false;
 
-	cancel_delayed_work_sync(&muic_data->hv_muic_qc_vb_work);
+	cancel_delayed_work(&muic_data->hv_muic_qc_vb_work);
+	pr_info("%s:%s cancel_delayed_work, Mping missing wa\n",
+		MUIC_HV_DEV_NAME, __func__);
+	cancel_delayed_work(&muic_data->hv_muic_mping_miss_wa);
 #endif
 
 	muic_lookup_vps_table(muic_data->attached_dev);
@@ -1599,7 +1598,8 @@ static int max77843_muic_logically_detach(struct max77843_muic_data *muic_data,
 			max77843_muic_set_afc_ready(muic_data, false);
 			muic_data->is_afc_muic_prepare = false;
 			max77843_hv_muic_reset_hvcontrol_reg(muic_data);
-			cancel_delayed_work_sync(&muic_data->hv_muic_qc_vb_work);
+			cancel_delayed_work(&muic_data->hv_muic_qc_vb_work);
+			cancel_delayed_work(&muic_data->hv_muic_mping_miss_wa);
 		}
 #endif
 		break;
@@ -1979,7 +1979,7 @@ static muic_attached_dev_t muic_get_new_dev
 }
 
 #if !defined(CONFIG_SEC_FACTORY)
-bool is_need_muic_adcmode_continuous(muic_attached_dev_t new_dev)
+static bool is_need_muic_adcmode_continuous(muic_attached_dev_t new_dev)
 {
 	bool ret = false;
 
@@ -2049,7 +2049,6 @@ static void max77843_muic_detect_dev(struct max77843_muic_data *muic_data, int i
 
 	pr_info("%s:%s HVCONTROL1:0x%02x, 2:0x%02x\n", MUIC_DEV_NAME, __func__,
 		hvcontrol[0], hvcontrol[1]);
-
 
 	/* attached status */
 	muic_data->status1 = status[0];
