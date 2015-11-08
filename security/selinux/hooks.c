@@ -149,8 +149,10 @@ static int __init enforcing_setup(char *str)
 	if (!strict_strtoul(str, 0, &enforcing))
 #ifdef CONFIG_ALWAYS_ENFORCE
 		selinux_enforcing = 1;
+#elif defined(CONFIG_SECURITY_SELINUX_PERMISSIVE)
+        selinux_enforcing = 0;
 #else
-		selinux_enforcing = enforcing ? 1 : 0;
+        selinux_enforcing = enforcing ? 1 : 0;
 #endif
 	return 1;
 }
