@@ -21,6 +21,7 @@
 #include <linux/syscore_ops.h>
 
 #ifdef CONFIG_EXYNOS_ATAGS
+#include <mach/irqs.h>
 #include <plat/cpu.h>
 #endif
 
@@ -31,10 +32,6 @@
 #define COMBINER_INT_STATUS	0xC
 
 #define IRQ_IN_COMBINER		8
-
-#ifndef EXYNOS4210_MAX_COMBINER_NR
-#define EXYNOS4210_MAX_COMBINER_NR 16
-#endif
 
 static DEFINE_SPINLOCK(irq_controller_lock);
 
