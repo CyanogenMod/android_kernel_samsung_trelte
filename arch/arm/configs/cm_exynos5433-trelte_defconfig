@@ -563,12 +563,15 @@ CONFIG_SECCOMP=y
 # Boot options
 #
 CONFIG_USE_OF=y
-# CONFIG_ATAGS is not set
+CONFIG_ATAGS=y
 # CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE is not set
 CONFIG_ZBOOT_ROM_TEXT=0x0
 CONFIG_ZBOOT_ROM_BSS=0x0
 # CONFIG_ARM_APPENDED_DTB is not set
-CONFIG_CMDLINE=""
+CONFIG_CMDLINE="console=ram loglevel=4 sec_debug.level=0 sec_watchdog.sec_pet=5 printk.core_num=1 androidboot.debug_level=0x4f4c sec_log=0x200000@0x26000000 androidboot.security_mode=1526595584 sec_tima_log=0x200000@0x26202000 sec_avc_log=0x40000@0x26404000 s3cfb.bootloaderfb=0x67000000 lcdtype=5251081 consoleblank=0 vmalloc=384m ehci_hcd.park=3 oops=panic pmic_info=35 cordon=73e384fe09d3ab4d7ff0b5cbdc386941 connie=SM-N910C_JT_MEA_ead0f4f15c7cbe7ee3b6387cbb99b744 androidboot.emmc_checksum=3 androidboot.boot_salescode= androidboot.odin_download=1 androidboot.bootloader=N910CXXU1COH4 androidboot.selinux=enforcing androidboot.hardware=universal5433 androidboot.warranty_bit=1 androidboot.sec_atd.tty=/dev/ttySAC1 androidboot.serialno=41005255cac5b10b snd_soc_core.pmdown_time=1000"
+# CONFIG_CMDLINE_FROM_BOOTLOADER is not set
+# CONFIG_CMDLINE_EXTEND is not set
+CONFIG_CMDLINE_FORCE=y
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
 # CONFIG_CRASH_DUMP is not set
