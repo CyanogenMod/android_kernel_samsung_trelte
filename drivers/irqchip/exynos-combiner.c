@@ -32,6 +32,10 @@
 
 #define IRQ_IN_COMBINER		8
 
+#ifndef EXYNOS4210_MAX_COMBINER_NR
+#define EXYNOS4210_MAX_COMBINER_NR 16
+#endif
+
 static DEFINE_SPINLOCK(irq_controller_lock);
 
 static LIST_HEAD(combiner_list);
