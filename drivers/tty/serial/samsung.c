@@ -1298,6 +1298,7 @@ static void s3c24xx_serial_pm(struct uart_port *port, unsigned int level,
 {
 	struct s3c24xx_uart_port *ourport = to_ourport(port);
 	unsigned int umcon;
+    int timeout = 10000;
 
 	switch (level) {
 	case S3C24XX_UART_PORT_SUSPEND:
@@ -1308,6 +1309,9 @@ static void s3c24xx_serial_pm(struct uart_port *port, unsigned int level,
 
 		if (ourport->domain == DOMAIN_AUD)
 			aud_uart_gpio_cfg(&ourport->pdev->dev, level);
+
+        while (--timeout && !s3c24xx_serial_txempty_nofifo(port))
+            udelay(100);
 
 		clk_disable_unprepare(ourport->clk);
 		break;
