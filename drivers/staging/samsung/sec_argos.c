@@ -25,6 +25,7 @@
 #include <linux/list.h>
 #include <linux/cpumask.h>
 #include <linux/sec_argos.h>
+#include <linux/interrupt.h>
 
 #define ARGOS_NAME "argos"
 #define TYPE_SHIFT 4
