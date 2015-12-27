@@ -252,7 +252,6 @@ int ping_init_sock(struct sock *sk)
 {
 	struct net *net = sock_net(sk);
 	kgid_t group = current_egid();
-
 	struct group_info *group_info;
 	int i, j, count;
 	kgid_t low, high;
