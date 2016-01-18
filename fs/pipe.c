@@ -39,6 +39,12 @@ unsigned int pipe_max_size = 1048576;
  */
 unsigned int pipe_min_size = PAGE_SIZE;
 
+/* Maximum allocatable pages per user. Hard limit is unset by default, soft
+ * matches default values.
+ */
+unsigned long pipe_user_pages_hard;
+unsigned long pipe_user_pages_soft = PIPE_DEF_BUFFERS * INR_OPEN_CUR;
+
 /*
  * We use a start+len construction, which provides full use of the 
  * allocated memory.
@@ -791,20 +797,181 @@ pipe_fasync(int fd, struct file *filp, int on)
 	return retval;
 }
 
+<<<<<<< HEAD
 struct pipe_inode_info *alloc_pipe_info(void)
+=======
+
+static int
+pipe_read_release(struct inode *inode, struct file *filp)
+{
+	return pipe_release(inode, 1, 0);
+}
+
+static int
+pipe_write_release(struct inode *inode, struct file *filp)
+{
+	return pipe_release(inode, 0, 1);
+}
+
+static int
+pipe_rdwr_release(struct inode *inode, struct file *filp)
+{
+	int decr, decw;
+
+	decr = (filp->f_mode & FMODE_READ) != 0;
+	decw = (filp->f_mode & FMODE_WRITE) != 0;
+	return pipe_release(inode, decr, decw);
+}
+
+static int
+pipe_read_open(struct inode *inode, struct file *filp)
+{
+	int ret = -ENOENT;
+
+	mutex_lock(&inode->i_mutex);
+
+	if (inode->i_pipe) {
+		ret = 0;
+		inode->i_pipe->readers++;
+	}
+
+	mutex_unlock(&inode->i_mutex);
+
+	return ret;
+}
+
+static int
+pipe_write_open(struct inode *inode, struct file *filp)
+{
+	int ret = -ENOENT;
+
+	mutex_lock(&inode->i_mutex);
+
+	if (inode->i_pipe) {
+		ret = 0;
+		inode->i_pipe->writers++;
+	}
+
+	mutex_unlock(&inode->i_mutex);
+
+	return ret;
+}
+
+static int
+pipe_rdwr_open(struct inode *inode, struct file *filp)
+{
+	int ret = -ENOENT;
+
+	if (!(filp->f_mode & (FMODE_READ|FMODE_WRITE)))
+		return -EINVAL;
+
+	mutex_lock(&inode->i_mutex);
+
+	if (inode->i_pipe) {
+		ret = 0;
+		if (filp->f_mode & FMODE_READ)
+			inode->i_pipe->readers++;
+		if (filp->f_mode & FMODE_WRITE)
+			inode->i_pipe->writers++;
+	}
+
+	mutex_unlock(&inode->i_mutex);
+
+	return ret;
+}
+
+/*
+ * The file_operations structs are not static because they
+ * are also used in linux/fs/fifo.c to do operations on FIFOs.
+ *
+ * Pipes reuse fifos' file_operations structs.
+ */
+const struct file_operations read_pipefifo_fops = {
+	.llseek		= no_llseek,
+	.read		= do_sync_read,
+	.aio_read	= pipe_read,
+	.write		= bad_pipe_w,
+	.poll		= pipe_poll,
+	.unlocked_ioctl	= pipe_ioctl,
+	.open		= pipe_read_open,
+	.release	= pipe_read_release,
+	.fasync		= pipe_read_fasync,
+};
+
+const struct file_operations write_pipefifo_fops = {
+	.llseek		= no_llseek,
+	.read		= bad_pipe_r,
+	.write		= do_sync_write,
+	.aio_write	= pipe_write,
+	.poll		= pipe_poll,
+	.unlocked_ioctl	= pipe_ioctl,
+	.open		= pipe_write_open,
+	.release	= pipe_write_release,
+	.fasync		= pipe_write_fasync,
+};
+
+const struct file_operations rdwr_pipefifo_fops = {
+	.llseek		= no_llseek,
+	.read		= do_sync_read,
+	.aio_read	= pipe_read,
+	.write		= do_sync_write,
+	.aio_write	= pipe_write,
+	.poll		= pipe_poll,
+	.unlocked_ioctl	= pipe_ioctl,
+	.open		= pipe_rdwr_open,
+	.release	= pipe_rdwr_release,
+	.fasync		= pipe_rdwr_fasync,
+};
+
+static void account_pipe_buffers(struct pipe_inode_info *pipe,
+                                 unsigned long old, unsigned long new)
+{
+	atomic_long_add(new - old, &pipe->user->pipe_bufs);
+}
+
+static bool too_many_pipe_buffers_soft(struct user_struct *user)
+{
+	return pipe_user_pages_soft &&
+	       atomic_long_read(&user->pipe_bufs) >= pipe_user_pages_soft;
+}
+
+static bool too_many_pipe_buffers_hard(struct user_struct *user)
+{
+	return pipe_user_pages_hard &&
+	       atomic_long_read(&user->pipe_bufs) >= pipe_user_pages_hard;
+}
+
+struct pipe_inode_info * alloc_pipe_info(struct inode *inode)
+>>>>>>> 9664955... pipe: limit the per-user amount of pages allocated in pipes
 {
 	struct pipe_inode_info *pipe;
 
 	pipe = kzalloc(sizeof(struct pipe_inode_info), GFP_KERNEL);
 	if (pipe) {
-		pipe->bufs = kzalloc(sizeof(struct pipe_buffer) * PIPE_DEF_BUFFERS, GFP_KERNEL);
+		unsigned long pipe_bufs = PIPE_DEF_BUFFERS;
+		struct user_struct *user = get_current_user();
+
+		if (!too_many_pipe_buffers_hard(user)) {
+			if (too_many_pipe_buffers_soft(user))
+				pipe_bufs = 1;
+			pipe->bufs = kzalloc(sizeof(struct pipe_buffer) * pipe_bufs, GFP_KERNEL);
+		}
+
 		if (pipe->bufs) {
 			init_waitqueue_head(&pipe->wait);
 			pipe->r_counter = pipe->w_counter = 1;
+<<<<<<< HEAD
 			pipe->buffers = PIPE_DEF_BUFFERS;
 			mutex_init(&pipe->mutex);
+=======
+			pipe->inode = inode;
+			pipe->buffers = pipe_bufs;
+			pipe->user = user;
+			account_pipe_buffers(pipe, 0, pipe_bufs);
+>>>>>>> 9664955... pipe: limit the per-user amount of pages allocated in pipes
 			return pipe;
 		}
+		free_uid(user);
 		kfree(pipe);
 	}
 
@@ -815,6 +982,8 @@ void free_pipe_info(struct pipe_inode_info *pipe)
 {
 	int i;
 
+	account_pipe_buffers(pipe, pipe->buffers, 0);
+	free_uid(pipe->user);
 	for (i = 0; i < pipe->buffers; i++) {
 		struct pipe_buffer *buf = pipe->bufs + i;
 		if (buf->ops)
@@ -1205,6 +1374,7 @@ static long pipe_set_size(struct pipe_inode_info *pipe, unsigned long nr_pages)
 			memcpy(bufs + head, pipe->bufs, tail * sizeof(struct pipe_buffer));
 	}
 
+	account_pipe_buffers(pipe, pipe->buffers, nr_pages);
 	pipe->curbuf = 0;
 	kfree(pipe->bufs);
 	pipe->bufs = bufs;
@@ -1274,6 +1444,11 @@ long pipe_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
 			goto out;
 
 		if (!capable(CAP_SYS_RESOURCE) && size > pipe_max_size) {
+			ret = -EPERM;
+			goto out;
+		} else if ((too_many_pipe_buffers_hard(pipe->user) ||
+			    too_many_pipe_buffers_soft(pipe->user)) &&
+		           !capable(CAP_SYS_RESOURCE) && !capable(CAP_SYS_ADMIN)) {
 			ret = -EPERM;
 			goto out;
 		}
