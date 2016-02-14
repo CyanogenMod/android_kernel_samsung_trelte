@@ -571,15 +571,12 @@ CONFIG_SECCOMP=y
 # Boot options
 #
 CONFIG_USE_OF=y
-CONFIG_ATAGS=y
+# CONFIG_ATAGS is not set
 # CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE is not set
 CONFIG_ZBOOT_ROM_TEXT=0x0
 CONFIG_ZBOOT_ROM_BSS=0x0
 # CONFIG_ARM_APPENDED_DTB is not set
-CONFIG_CMDLINE="console=ram loglevel=4 sec_debug.level=0 sec_watchdog.sec_pet=5 printk.core_num=1 androidboot.debug_level=0x4f4c sec_log=0x200000@0x26000000 sec_avc_log=0x40000@0x26404000 s3cfb.bootloaderfb=0x67000000 lcdtype=5251081 consoleblank=0 vmalloc=384m ehci_hcd.park=3 oops=panic pmic_info=35 androidboot.selinux=permissive androidboot.hardware=universal5433 snd_soc_core.pmdown_time=1000"
-# CONFIG_CMDLINE_FROM_BOOTLOADER is not set
-# CONFIG_CMDLINE_EXTEND is not set
-CONFIG_CMDLINE_FORCE=y
+CONFIG_CMDLINE=""
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
 # CONFIG_CRASH_DUMP is not set
