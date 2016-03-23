@@ -1106,7 +1106,11 @@ static void hci_cs_create_conn(struct hci_dev *hdev, __u8 status)
 
 	conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK, &cp->bdaddr);
 
+<<<<<<< HEAD
 	BT_DBG("%s bdaddr %pMR hcon %p", hdev->name, &cp->bdaddr, conn);
+=======
+	BT_DBG("%s bdaddr %s conn %pK", hdev->name, batostr(&cp->bdaddr), conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (status) {
 		if (conn && conn->state == BT_CONNECT) {
@@ -1512,10 +1516,38 @@ static void hci_cs_disconnect(struct hci_dev *hdev, u8 status)
 
 	hci_dev_lock(hdev);
 
+<<<<<<< HEAD
 	conn = hci_conn_hash_lookup_handle(hdev, __le16_to_cpu(cp->handle));
 	if (conn)
 		mgmt_disconnect_failed(hdev, &conn->dst, conn->type,
 				       conn->dst_type, status);
+=======
+	conn = hci_conn_hash_lookup_ba(hdev, LE_LINK, &cp->peer_addr);
+
+	BT_DBG("%s bdaddr %s conn %pK", hdev->name, batostr(&cp->peer_addr),
+		conn);
+
+	if (status) {
+		if (conn && conn->state == BT_CONNECT) {
+			conn->state = BT_CLOSED;
+			hci_proto_connect_cfm(conn, status);
+			hci_conn_del(conn);
+		}
+	} else {
+		if (!conn) {
+			conn = hci_le_conn_add(hdev, &cp->peer_addr,
+						cp->peer_addr_type);
+			if (conn)
+				conn->out = 1;
+			else
+				BT_ERR("No memory for new connection");
+		} else
+			exp = msecs_to_jiffies(conn->conn_timeout * 1000);
+
+		if (conn && exp)
+			mod_timer(&conn->disc_timer, jiffies + exp);
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	hci_dev_unlock(hdev);
 }
@@ -1537,11 +1569,15 @@ static void hci_cs_le_create_conn(struct hci_dev *hdev, __u8 status)
 
 		BT_DBG("%s bdaddr %pMR conn %p", hdev->name, &conn->dst, conn);
 
+<<<<<<< HEAD
 		conn->state = BT_CLOSED;
 		mgmt_connect_failed(hdev, &conn->dst, conn->type,
 				    conn->dst_type, status);
 		hci_proto_connect_cfm(conn, status);
 		hci_conn_del(conn);
+=======
+	BT_DBG("%s chan %pK", hdev->name, chan);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		hci_dev_unlock(hdev);
 	}
@@ -1559,6 +1595,13 @@ static void hci_cs_create_phylink(struct hci_dev *hdev, u8 status)
 
 	hci_dev_lock(hdev);
 
+<<<<<<< HEAD
+=======
+	chan = hci_chan_list_lookup_id(hdev, cp->phy_handle);
+
+	BT_DBG("%s chan %pK", hdev->name, chan);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	if (status) {
 		struct hci_conn *hcon;
 
@@ -2439,7 +2482,25 @@ static void hci_cmd_status_evt(struct hci_dev *hdev, struct sk_buff *skb)
 	if (ev->ncmd && !test_bit(HCI_RESET, &hdev->flags)) {
 		atomic_set(&hdev->cmd_cnt, 1);
 		if (!skb_queue_empty(&hdev->cmd_q))
+<<<<<<< HEAD
 			queue_work(hdev->workqueue, &hdev->cmd_work);
+=======
+			tasklet_schedule(&hdev->cmd_task);
+	}
+}
+
+static inline void hci_hardware_error_evt(struct hci_dev *hdev,
+					struct sk_buff *skb)
+{
+	struct hci_ev_hardware_error *ev = (void *) skb->data;
+
+	BT_ERR("hdev=%pK, hw_err_code = %u", hdev, ev->hw_err_code);
+
+	if (hdev && hdev->dev_type == HCI_BREDR) {
+		hci_dev_lock_bh(hdev);
+		mgmt_powered(hdev->id, 1);
+		hci_dev_unlock_bh(hdev);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	}
 }
 
@@ -2587,7 +2648,20 @@ static void hci_num_comp_blocks_evt(struct hci_dev *hdev, struct sk_buff *skb)
 		if (!conn)
 			continue;
 
+<<<<<<< HEAD
 		conn->sent -= block_count;
+=======
+		if (hdev->dev_type == HCI_BREDR)
+			conn = hci_conn_hash_lookup_handle(hdev, handle);
+		else {
+			chan = hci_chan_list_lookup_handle(hdev, handle);
+			if (chan)
+				conn = chan->conn;
+		}
+		if (conn) {
+			BT_DBG("%s conn %pK sent %d", hdev->name,
+				conn, conn->sent);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		switch (conn->type) {
 		case ACL_LINK:
@@ -3051,8 +3125,24 @@ static void hci_extended_inquiry_result_evt(struct hci_dev *hdev,
 static void hci_key_refresh_complete_evt(struct hci_dev *hdev,
 					 struct sk_buff *skb)
 {
+<<<<<<< HEAD
 	struct hci_ev_key_refresh_complete *ev = (void *) skb->data;
 	struct hci_conn *conn;
+=======
+	BT_DBG("%pK", conn);
+
+	/* If remote requests dedicated bonding follow that lead */
+	if (conn->remote_auth == 0x02 || conn->remote_auth == 0x03) {
+		/* If both remote and local IO capabilities allow MITM
+		 * protection then require it, otherwise don't */
+		if (conn->remote_cap == 0x03 || conn->io_capability == 0x03) {
+			return 0x02;
+		} else {
+			conn->auth_type |= 0x01;
+			return 0x03;
+		}
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("%s status 0x%2.2x handle 0x%4.4x", hdev->name, ev->status,
 	       __le16_to_cpu(ev->handle));

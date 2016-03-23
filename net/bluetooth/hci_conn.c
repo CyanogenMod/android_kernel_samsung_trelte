@@ -35,6 +35,47 @@ static void hci_le_create_connection(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_le_create_conn cp;
+<<<<<<< HEAD
+=======
+	struct adv_entry *entry;
+	struct link_key *key;
+
+	BT_DBG("%pK", hdev);
+
+	le = hci_conn_hash_lookup_ba(hdev, LE_LINK, dst);
+	if (le) {
+		le_wlist_conn = hci_conn_hash_lookup_ba(hdev, LE_LINK,
+								BDADDR_ANY);
+		if (!le_wlist_conn) {
+			hci_conn_hold(le);
+			return le;
+		} else {
+			BT_DBG("remove wlist conn");
+			le->out = 1;
+			le->link_mode |= HCI_LM_MASTER;
+			le->sec_level = BT_SECURITY_LOW;
+			le->type = LE_LINK;
+			hci_proto_connect_cfm(le, 0);
+			hci_conn_del(le_wlist_conn);
+			return le;
+		}
+	}
+
+	key = hci_find_link_key_type(hdev, dst, KEY_TYPE_LTK);
+	if (!key) {
+		entry = hci_find_adv_entry(hdev, dst);
+		if (entry)
+			le = hci_le_conn_add(hdev, dst,
+					entry->bdaddr_type);
+		else
+			le = hci_le_conn_add(hdev, dst, 0);
+	} else {
+		le = hci_le_conn_add(hdev, dst, key->addr_type);
+	}
+
+	if (!le)
+		return ERR_PTR(-ENOMEM);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->state = BT_CONNECT;
 	conn->out = true;
@@ -60,13 +101,95 @@ static void hci_le_create_connection_cancel(struct hci_conn *conn)
 	hci_send_cmd(conn->hdev, HCI_OP_LE_CREATE_CONN_CANCEL, 0, NULL);
 }
 
+<<<<<<< HEAD
 static void hci_acl_create_connection(struct hci_conn *conn)
+=======
+void hci_le_cancel_create_connect(struct hci_dev *hdev, bdaddr_t *dst)
+{
+	struct hci_conn *le;
+
+	BT_DBG("%pK", hdev);
+
+	le = hci_conn_hash_lookup_ba(hdev, LE_LINK, dst);
+	if (le) {
+		BT_DBG("send hci connect cancel");
+		hci_le_connect_cancel(le);
+		hci_conn_del(le);
+	}
+}
+EXPORT_SYMBOL(hci_le_cancel_create_connect);
+
+void hci_le_add_dev_white_list(struct hci_dev *hdev, bdaddr_t *dst)
+{
+	struct hci_cp_le_add_dev_white_list cp;
+	struct adv_entry *entry;
+	struct link_key *key;
+
+	BT_DBG("%pK", hdev);
+
+	memset(&cp, 0, sizeof(cp));
+	bacpy(&cp.addr, dst);
+
+	key = hci_find_link_key_type(hdev, dst, KEY_TYPE_LTK);
+	if (!key) {
+		entry = hci_find_adv_entry(hdev, dst);
+		if (entry)
+			cp.addr_type = entry->bdaddr_type;
+		else
+			cp.addr_type = 0x00;
+	} else {
+		cp.addr_type = key->addr_type;
+	}
+
+	hci_send_cmd(hdev, HCI_OP_LE_ADD_DEV_WHITE_LIST, sizeof(cp), &cp);
+}
+EXPORT_SYMBOL(hci_le_add_dev_white_list);
+
+void hci_le_remove_dev_white_list(struct hci_dev *hdev, bdaddr_t *dst)
+{
+	struct hci_cp_le_remove_dev_white_list cp;
+	struct adv_entry *entry;
+	struct link_key *key;
+
+	BT_DBG("%pK", hdev);
+
+	memset(&cp, 0, sizeof(cp));
+	bacpy(&cp.addr, dst);
+
+	key = hci_find_link_key_type(hdev, dst, KEY_TYPE_LTK);
+	if (!key) {
+		entry = hci_find_adv_entry(hdev, dst);
+		if (entry)
+			cp.addr_type = entry->bdaddr_type;
+		else
+			cp.addr_type = 0x00;
+	} else {
+		cp.addr_type = key->addr_type;
+	}
+
+	hci_send_cmd(hdev, HCI_OP_LE_REMOVE_DEV_WHITE_LIST, sizeof(cp), &cp);
+}
+EXPORT_SYMBOL(hci_le_remove_dev_white_list);
+
+static inline bool is_role_switch_possible(struct hci_dev *hdev)
+{
+	if (hci_conn_hash_lookup_state(hdev, ACL_LINK, BT_CONNECTED))
+		return false;
+	return true;
+}
+
+void hci_acl_connect(struct hci_conn *conn)
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 {
 	struct hci_dev *hdev = conn->hdev;
 	struct inquiry_entry *ie;
 	struct hci_cp_create_conn cp;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("%pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->state = BT_CONNECT;
 	conn->out = true;
@@ -108,7 +231,11 @@ static void hci_acl_create_connection_cancel(struct hci_conn *conn)
 {
 	struct hci_cp_create_conn_cancel cp;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("hcon %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (conn->hdev->hci_ver < BLUETOOTH_VER_1_2)
 		return;
@@ -129,9 +256,13 @@ static void hci_reject_sco(struct hci_conn *conn)
 
 void hci_disconnect(struct hci_conn *conn, __u8 reason)
 {
+<<<<<<< HEAD
 	struct hci_cp_disconnect cp;
 
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("%pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->state = BT_DISCONN;
 
@@ -159,7 +290,11 @@ static void hci_add_sco(struct hci_conn *conn, __u16 handle)
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_add_sco cp;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("%pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->state = BT_CONNECT;
 	conn->out = true;
@@ -177,7 +312,11 @@ void hci_setup_sync(struct hci_conn *conn, __u16 handle)
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_setup_sync_conn cp;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("%pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->state = BT_CONNECT;
 	conn->out = true;
@@ -221,7 +360,11 @@ void hci_le_start_enc(struct hci_conn *conn, __le16 ediv, __u8 rand[8],
 	struct hci_dev *hdev = conn->hdev;
 	struct hci_cp_le_start_enc cp;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("%pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	memset(&cp, 0, sizeof(cp));
 
@@ -232,12 +375,51 @@ void hci_le_start_enc(struct hci_conn *conn, __le16 ediv, __u8 rand[8],
 
 	hci_send_cmd(hdev, HCI_OP_LE_START_ENC, sizeof(cp), &cp);
 }
+<<<<<<< HEAD
+=======
+EXPORT_SYMBOL(hci_le_start_enc);
+
+void hci_le_ltk_reply(struct hci_conn *conn, u8 ltk[16])
+{
+	struct hci_dev *hdev = conn->hdev;
+	struct hci_cp_le_ltk_reply cp;
+
+	BT_DBG("%pK", conn);
+
+	memset(&cp, 0, sizeof(cp));
+
+	cp.handle = cpu_to_le16(conn->handle);
+	memcpy(cp.ltk, ltk, sizeof(cp.ltk));
+
+	hci_send_cmd(hdev, HCI_OP_LE_LTK_REPLY, sizeof(cp), &cp);
+}
+EXPORT_SYMBOL(hci_le_ltk_reply);
+
+void hci_le_ltk_neg_reply(struct hci_conn *conn)
+{
+	struct hci_dev *hdev = conn->hdev;
+	struct hci_cp_le_ltk_neg_reply cp;
+
+	BT_DBG("%pK", conn);
+
+	memset(&cp, 0, sizeof(cp));
+
+	cp.handle = cpu_to_le16(conn->handle);
+
+	hci_send_cmd(hdev, HCI_OP_LE_LTK_NEG_REPLY, sizeof(cp), &cp);
+}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 /* Device _must_ be locked */
 void hci_sco_setup(struct hci_conn *conn, __u8 status)
 {
 	struct hci_conn *sco = conn->link;
 
+<<<<<<< HEAD
+=======
+	BT_DBG("%pK", conn);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	if (!sco)
 		return;
 
@@ -268,10 +450,14 @@ static void hci_conn_disconnect(struct hci_conn *conn)
 	}
 }
 
+<<<<<<< HEAD
 static void hci_conn_timeout(struct work_struct *work)
 {
 	struct hci_conn *conn = container_of(work, struct hci_conn,
 					     disc_work.work);
+=======
+	BT_DBG("conn %pK state %d", conn, conn->state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("hcon %p state %s", conn, state_to_string(conn->state));
 
@@ -305,7 +491,11 @@ static void hci_conn_enter_sniff_mode(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p mode %d", conn, conn->mode);
+=======
+	BT_DBG("conn %pK mode %d", conn, conn->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (test_bit(HCI_RAW, &hdev->flags))
 		return;
@@ -313,8 +503,12 @@ static void hci_conn_enter_sniff_mode(struct hci_conn *conn)
 	if (!lmp_sniff_capable(hdev) || !lmp_sniff_capable(conn))
 		return;
 
+<<<<<<< HEAD
 	if (conn->mode != HCI_CM_ACTIVE || !(conn->link_policy & HCI_LP_SNIFF))
 		return;
+=======
+	BT_DBG("conn %pK mode %d", conn, conn->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (lmp_sniffsubr_capable(hdev) && lmp_sniffsubr_capable(conn)) {
 		struct hci_cp_sniff_subrate cp;
@@ -338,7 +532,12 @@ static void hci_conn_enter_sniff_mode(struct hci_conn *conn)
 
 static void hci_conn_idle(unsigned long arg)
 {
+<<<<<<< HEAD
 	struct hci_conn *conn = (void *) arg;
+=======
+	struct hci_conn *conn = (struct hci_conn *)userdata;
+	BT_INFO("conn %pK Grace Prd Exp ", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("hcon %p mode %d", conn, conn->mode);
 
@@ -428,7 +627,15 @@ int hci_conn_del(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
 
+<<<<<<< HEAD
 	BT_DBG("%s hcon %p handle %d", hdev->name, conn, conn->handle);
+=======
+	BT_DBG("%s conn %pK handle %d", hdev->name, conn, conn->handle);
+
+	spin_lock_bh(&conn->lock);
+	conn->conn_valid = false; /* conn data is being released */
+	spin_unlock_bh(&conn->lock);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	del_timer(&conn->idle_timer);
 
@@ -471,11 +678,78 @@ int hci_conn_del(struct hci_conn *conn)
 
 	hci_dev_put(hdev);
 
+<<<<<<< HEAD
 	hci_conn_put(conn);
+=======
+	return 0;
+}
+
+struct hci_chan *hci_chan_add(struct hci_dev *hdev)
+{
+	struct hci_chan *chan;
+
+	BT_DBG("%s", hdev->name);
+
+	chan = kzalloc(sizeof(struct hci_chan), GFP_ATOMIC);
+	if (!chan)
+		return NULL;
+
+	atomic_set(&chan->refcnt, 0);
+
+	hci_dev_hold(hdev);
+
+	chan->hdev = hdev;
+
+	list_add(&chan->list, &hdev->chan_list.list);
+
+	return chan;
+}
+EXPORT_SYMBOL(hci_chan_add);
+
+int hci_chan_del(struct hci_chan *chan)
+{
+	BT_DBG("%s chan %pK", chan->hdev->name, chan);
+
+	list_del(&chan->list);
+
+	hci_conn_put(chan->conn);
+	hci_dev_put(chan->hdev);
+
+	kfree(chan);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	return 0;
 }
 
+<<<<<<< HEAD
+=======
+int hci_chan_put(struct hci_chan *chan)
+{
+	struct hci_cp_disconn_logical_link cp;
+	struct hci_conn *hcon;
+	u16 ll_handle;
+
+	BT_DBG("chan %pK refcnt %d", chan, atomic_read(&chan->refcnt));
+	if (!atomic_dec_and_test(&chan->refcnt))
+		return 0;
+
+	hcon = chan->conn;
+	ll_handle = chan->ll_handle;
+
+	hci_chan_del(chan);
+
+	BT_DBG("chan->conn->state %d", hcon->state);
+	if (hcon->state == BT_CONNECTED) {
+		cp.log_handle = cpu_to_le16(ll_handle);
+		hci_send_cmd(hcon->hdev, HCI_OP_DISCONN_LOGICAL_LINK,
+				sizeof(cp), &cp);
+	}
+
+	return 1;
+}
+EXPORT_SYMBOL(hci_chan_put);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 struct hci_dev *hci_get_route(bdaddr_t *dst, bdaddr_t *src)
 {
 	int use_src = bacmp(src, BDADDR_ANY);
@@ -611,12 +885,28 @@ static struct hci_conn *hci_connect_sco(struct hci_dev *hdev, int type,
 	return sco;
 }
 
+<<<<<<< HEAD
 /* Create SCO, ACL or LE connection. */
 struct hci_conn *hci_connect(struct hci_dev *hdev, int type,
 			     __u16 pkt_type, bdaddr_t *dst,
 			     __u8 dst_type, __u8 sec_level, __u8 auth_type)
 {
 	BT_DBG("%s dst %pMR type 0x%x", hdev->name, dst, type);
+=======
+void hci_disconnect(struct hci_conn *conn, __u8 reason)
+{
+	BT_DBG("conn %pK", conn);
+
+	hci_proto_disconn_cfm(conn, reason, 0);
+}
+EXPORT_SYMBOL(hci_disconnect);
+
+void hci_disconnect_amp(struct hci_conn *conn, __u8 reason)
+{
+	struct hci_dev *hdev = NULL;
+
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (type) {
 	case LE_LINK:
@@ -634,7 +924,11 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type,
 /* Check link security requirement */
 int hci_conn_check_link_mode(struct hci_conn *conn)
 {
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (hci_conn_ssp_enabled(conn) && !(conn->link_mode & HCI_LM_ENCRYPT))
 		return 0;
@@ -645,7 +939,11 @@ int hci_conn_check_link_mode(struct hci_conn *conn)
 /* Authenticate remote device */
 static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 {
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (conn->pending_sec_level > sec_level)
 		sec_level = conn->pending_sec_level;
@@ -693,10 +991,14 @@ static void hci_conn_encrypt(struct hci_conn *conn)
 /* Enable security */
 int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 {
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
 
 	if (conn->type == LE_LINK)
 		return smp_conn_security(conn, sec_level);
+=======
+	BT_DBG("conn %pK %d %d", conn, sec_level, auth_type);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	/* For sdp we don't need the link key. */
 	if (sec_level == BT_SECURITY_SDP)
@@ -764,7 +1066,11 @@ EXPORT_SYMBOL(hci_conn_check_secure);
 /* Change link key */
 int hci_conn_change_link_key(struct hci_conn *conn)
 {
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!test_and_set_bit(HCI_CONN_AUTH_PEND, &conn->flags)) {
 		struct hci_cp_change_conn_link_key cp;
@@ -779,7 +1085,11 @@ int hci_conn_change_link_key(struct hci_conn *conn)
 /* Switch role */
 int hci_conn_switch_role(struct hci_conn *conn, __u8 role)
 {
+<<<<<<< HEAD
 	BT_DBG("hcon %p", conn);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!role && conn->link_mode & HCI_LM_MASTER)
 		return 1;
@@ -800,7 +1110,11 @@ void hci_conn_enter_active_mode(struct hci_conn *conn, __u8 force_active)
 {
 	struct hci_dev *hdev = conn->hdev;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p mode %d", conn, conn->mode);
+=======
+	BT_DBG("conn %pK mode %d", conn, conn->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (test_bit(HCI_RAW, &hdev->flags))
 		return;
@@ -818,11 +1132,160 @@ void hci_conn_enter_active_mode(struct hci_conn *conn, __u8 force_active)
 	}
 
 timer:
+<<<<<<< HEAD
 	if (hdev->idle_timeout > 0)
 		mod_timer(&conn->idle_timer,
 			  jiffies + msecs_to_jiffies(hdev->idle_timeout));
 }
 
+=======
+	if (hdev->idle_timeout > 0) {
+		spin_lock_bh(&conn->lock);
+		if (conn->conn_valid) {
+			mod_timer(&conn->idle_timer,
+				jiffies + msecs_to_jiffies(hdev->idle_timeout));
+		}
+		spin_unlock_bh(&conn->lock);
+	}
+}
+
+static inline void hci_conn_stop_rssi_timer(struct hci_conn *conn)
+{
+	BT_DBG("conn %pK", conn);
+	cancel_delayed_work(&conn->rssi_update_work);
+}
+
+static inline void hci_conn_start_rssi_timer(struct hci_conn *conn,
+	u16 interval)
+{
+	struct hci_dev *hdev = conn->hdev;
+	BT_DBG("conn %pK, pending %d", conn,
+			delayed_work_pending(&conn->rssi_update_work));
+	if (!delayed_work_pending(&conn->rssi_update_work)) {
+		queue_delayed_work(hdev->workqueue, &conn->rssi_update_work,
+				msecs_to_jiffies(interval));
+	}
+}
+
+void hci_conn_set_rssi_reporter(struct hci_conn *conn,
+	s8 rssi_threshold, u16 interval, u8 updateOnThreshExceed)
+{
+	if (conn) {
+		conn->rssi_threshold = rssi_threshold;
+		conn->rssi_update_interval = interval;
+		conn->rssi_update_thresh_exceed = updateOnThreshExceed;
+		hci_conn_start_rssi_timer(conn, interval);
+	}
+}
+
+void hci_conn_unset_rssi_reporter(struct hci_conn *conn)
+{
+	if (conn) {
+		BT_DBG("Deleting the rssi_update_timer");
+		hci_conn_stop_rssi_timer(conn);
+	}
+}
+
+/* Enter sniff mode */
+void hci_conn_enter_sniff_mode(struct hci_conn *conn)
+{
+	struct hci_dev *hdev = conn->hdev;
+
+	BT_DBG("conn %pK mode %d", conn, conn->mode);
+
+	if (test_bit(HCI_RAW, &hdev->flags))
+		return;
+
+	if (conn->type == LE_LINK)
+		return;
+
+	if (!lmp_sniff_capable(hdev) || !lmp_sniff_capable(conn))
+		return;
+
+	if (conn->mode != HCI_CM_ACTIVE ||
+		!(conn->link_policy & HCI_LP_SNIFF) ||
+		(hci_find_link_key(hdev, &conn->dst) == NULL))
+		return;
+
+	if (lmp_sniffsubr_capable(hdev) && lmp_sniffsubr_capable(conn)) {
+		struct hci_cp_sniff_subrate cp;
+		cp.handle             = cpu_to_le16(conn->handle);
+		cp.max_latency        = cpu_to_le16(0);
+		cp.min_remote_timeout = cpu_to_le16(0);
+		cp.min_local_timeout  = cpu_to_le16(0);
+		hci_send_cmd(hdev, HCI_OP_SNIFF_SUBRATE, sizeof(cp), &cp);
+	}
+
+	if (!test_and_set_bit(HCI_CONN_MODE_CHANGE_PEND, &conn->pend)) {
+		struct hci_cp_sniff_mode cp;
+		cp.handle       = cpu_to_le16(conn->handle);
+		cp.max_interval = cpu_to_le16(hdev->sniff_max_interval);
+		cp.min_interval = cpu_to_le16(hdev->sniff_min_interval);
+		cp.attempt      = cpu_to_le16(4);
+		cp.timeout      = cpu_to_le16(1);
+		hci_send_cmd(hdev, HCI_OP_SNIFF_MODE, sizeof(cp), &cp);
+	}
+}
+
+struct hci_chan *hci_chan_create(struct hci_chan *chan,
+			struct hci_ext_fs *tx_fs, struct hci_ext_fs *rx_fs)
+{
+	struct hci_cp_create_logical_link cp;
+
+	chan->state = BT_CONNECT;
+	chan->tx_fs = *tx_fs;
+	chan->rx_fs = *rx_fs;
+	cp.phy_handle = chan->conn->handle;
+	cp.tx_fs.id = chan->tx_fs.id;
+	cp.tx_fs.type = chan->tx_fs.type;
+	cp.tx_fs.max_sdu = cpu_to_le16(chan->tx_fs.max_sdu);
+	cp.tx_fs.sdu_arr_time = cpu_to_le32(chan->tx_fs.sdu_arr_time);
+	cp.tx_fs.acc_latency = cpu_to_le32(chan->tx_fs.acc_latency);
+	cp.tx_fs.flush_to = cpu_to_le32(chan->tx_fs.flush_to);
+	cp.rx_fs.id = chan->rx_fs.id;
+	cp.rx_fs.type = chan->rx_fs.type;
+	cp.rx_fs.max_sdu = cpu_to_le16(chan->rx_fs.max_sdu);
+	cp.rx_fs.sdu_arr_time = cpu_to_le32(chan->rx_fs.sdu_arr_time);
+	cp.rx_fs.acc_latency = cpu_to_le32(chan->rx_fs.acc_latency);
+	cp.rx_fs.flush_to = cpu_to_le32(chan->rx_fs.flush_to);
+	hci_conn_hold(chan->conn);
+	if (chan->conn->out)
+		hci_send_cmd(chan->conn->hdev, HCI_OP_CREATE_LOGICAL_LINK,
+							sizeof(cp), &cp);
+	else
+		hci_send_cmd(chan->conn->hdev, HCI_OP_ACCEPT_LOGICAL_LINK,
+							sizeof(cp), &cp);
+	return chan;
+}
+EXPORT_SYMBOL(hci_chan_create);
+
+void hci_chan_modify(struct hci_chan *chan,
+			struct hci_ext_fs *tx_fs, struct hci_ext_fs *rx_fs)
+{
+	struct hci_cp_flow_spec_modify cp;
+
+	chan->tx_fs = *tx_fs;
+	chan->rx_fs = *rx_fs;
+	cp.log_handle = cpu_to_le16(chan->ll_handle);
+	cp.tx_fs.id = tx_fs->id;
+	cp.tx_fs.type = tx_fs->type;
+	cp.tx_fs.max_sdu = cpu_to_le16(tx_fs->max_sdu);
+	cp.tx_fs.sdu_arr_time = cpu_to_le32(tx_fs->sdu_arr_time);
+	cp.tx_fs.acc_latency = cpu_to_le32(tx_fs->acc_latency);
+	cp.tx_fs.flush_to = cpu_to_le32(tx_fs->flush_to);
+	cp.rx_fs.id = rx_fs->id;
+	cp.rx_fs.type = rx_fs->type;
+	cp.rx_fs.max_sdu = cpu_to_le16(rx_fs->max_sdu);
+	cp.rx_fs.sdu_arr_time = cpu_to_le32(rx_fs->sdu_arr_time);
+	cp.rx_fs.acc_latency = cpu_to_le32(rx_fs->acc_latency);
+	cp.rx_fs.flush_to = cpu_to_le32(rx_fs->flush_to);
+	hci_conn_hold(chan->conn);
+	hci_send_cmd(chan->conn->hdev, HCI_OP_FLOW_SPEC_MODIFY, sizeof(cp),
+									&cp);
+}
+EXPORT_SYMBOL(hci_chan_modify);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 /* Drop all connection on the device */
 void hci_conn_hash_flush(struct hci_dev *hdev)
 {

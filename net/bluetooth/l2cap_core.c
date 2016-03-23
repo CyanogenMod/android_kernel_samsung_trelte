@@ -325,6 +325,11 @@ static u16 l2cap_seq_list_remove(struct l2cap_seq_list *seq_list, u16 seq)
 {
 	u16 mask = seq_list->mask;
 
+<<<<<<< HEAD
+=======
+	BT_DBG("seq_list %pK, seq %d", seq_list, (int) seq);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	if (seq_list->head == L2CAP_SEQ_LIST_CLEAR) {
 		/* In case someone tries to pop the head of an empty list */
 		return L2CAP_SEQ_LIST_CLEAR;
@@ -379,7 +384,11 @@ static void l2cap_seq_list_append(struct l2cap_seq_list *seq_list, u16 seq)
 {
 	u16 mask = seq_list->mask;
 
+<<<<<<< HEAD
 	/* All appends happen in constant time */
+=======
+	BT_DBG("seq_list %pK, seq %d", seq_list, (int) seq);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (seq_list->list[seq & mask] != L2CAP_SEQ_LIST_CLEAR)
 		return;
@@ -446,13 +455,30 @@ struct l2cap_chan *l2cap_chan_create(void)
 	/* This flag is cleared in l2cap_chan_ready() */
 	set_bit(CONF_NOT_COMPLETE, &chan->conf_state);
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
 
 	return chan;
+=======
+static inline void l2cap_ertm_stop_ack_timer(struct l2cap_pinfo *pi)
+{
+	BT_DBG("pi %pK", pi);
+	__cancel_delayed_work(&pi->ack_work);
+}
+
+static inline void l2cap_ertm_start_ack_timer(struct l2cap_pinfo *pi)
+{
+	BT_DBG("pi %pK, pending %d", pi, delayed_work_pending(&pi->ack_work));
+	if (!delayed_work_pending(&pi->ack_work)) {
+		queue_delayed_work(_l2cap_wq, &pi->ack_work,
+				msecs_to_jiffies(L2CAP_DEFAULT_ACK_TO));
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 }
 
 static void l2cap_chan_destroy(struct kref *kref)
 {
+<<<<<<< HEAD
 	struct l2cap_chan *chan = container_of(kref, struct l2cap_chan, kref);
 
 	BT_DBG("chan %p", chan);
@@ -462,6 +488,37 @@ static void l2cap_chan_destroy(struct kref *kref)
 	write_unlock(&chan_list_lock);
 
 	kfree(chan);
+=======
+	BT_DBG("pi %pK", pi);
+	__cancel_delayed_work(&pi->retrans_work);
+}
+
+static inline void l2cap_ertm_start_retrans_timer(struct l2cap_pinfo *pi)
+{
+	BT_DBG("pi %pK", pi);
+	if (!delayed_work_pending(&pi->monitor_work) && pi->retrans_timeout) {
+		__cancel_delayed_work(&pi->retrans_work);
+		queue_delayed_work(_l2cap_wq, &pi->retrans_work,
+			msecs_to_jiffies(pi->retrans_timeout));
+	}
+}
+
+static inline void l2cap_ertm_stop_monitor_timer(struct l2cap_pinfo *pi)
+{
+	BT_DBG("pi %pK", pi);
+	__cancel_delayed_work(&pi->monitor_work);
+}
+
+static inline void l2cap_ertm_start_monitor_timer(struct l2cap_pinfo *pi)
+{
+	BT_DBG("pi %pK", pi);
+	l2cap_ertm_stop_retrans_timer(pi);
+	__cancel_delayed_work(&pi->monitor_work);
+	if (pi->monitor_timeout) {
+		queue_delayed_work(_l2cap_wq, &pi->monitor_work,
+				msecs_to_jiffies(pi->monitor_timeout));
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 }
 
 void l2cap_chan_hold(struct l2cap_chan *c)
@@ -492,8 +549,15 @@ void l2cap_chan_set_defaults(struct l2cap_chan *chan)
 
 void __l2cap_chan_add(struct l2cap_conn *conn, struct l2cap_chan *chan)
 {
+<<<<<<< HEAD
 	BT_DBG("conn %p, psm 0x%2.2x, dcid 0x%4.4x", conn,
 	       __le16_to_cpu(chan->psm), chan->dcid);
+=======
+	struct l2cap_chan_list *l = &conn->chan_list;
+
+	BT_DBG("conn %pK, psm 0x%2.2x, dcid 0x%4.4x", conn,
+			l2cap_pi(sk)->psm, l2cap_pi(sk)->dcid);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	conn->disc_reason = HCI_ERROR_REMOTE_USER_TERM;
 
@@ -559,7 +623,11 @@ void l2cap_chan_del(struct l2cap_chan *chan, int err)
 
 	__clear_chan_timer(chan);
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, conn %p, err %d", chan, conn, err);
+=======
+	BT_DBG("sk %pK, conn %pK, err %d", sk, conn, err);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (conn) {
 		struct amp_mgr *mgr = conn->hcon->amp_mgr;
@@ -1216,7 +1284,7 @@ static void l2cap_conn_start(struct l2cap_conn *conn)
 {
 	struct l2cap_chan *chan, *tmp;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	mutex_lock(&conn->chan_lock);
 
@@ -1378,7 +1446,7 @@ static void l2cap_conn_ready(struct l2cap_conn *conn)
 	struct l2cap_chan *chan;
 	struct hci_conn *hcon = conn->hcon;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	if (!hcon->out && hcon->type == LE_LINK)
 		l2cap_le_conn_ready(conn);
@@ -1423,7 +1491,7 @@ static void l2cap_conn_unreliable(struct l2cap_conn *conn, int err)
 {
 	struct l2cap_chan *chan;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	mutex_lock(&conn->chan_lock);
 
@@ -1478,11 +1546,15 @@ int l2cap_register_user(struct l2cap_conn *conn, struct l2cap_user *user)
 		goto out_unlock;
 	}
 
+<<<<<<< HEAD
 	/* conn->hchan is NULL after l2cap_conn_del() was called */
 	if (!conn->hchan) {
 		ret = -ENODEV;
 		goto out_unlock;
 	}
+=======
+	BT_DBG("hcon %pK conn %pK", hcon, conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	ret = user->probe(conn, user);
 	if (ret)
@@ -1537,12 +1609,13 @@ static void l2cap_conn_del(struct hci_conn *hcon, int err)
 	if (!conn)
 		return;
 
-	BT_DBG("hcon %p conn %p, err %d", hcon, conn, err);
+	BT_DBG("hcon %pK conn %pK, err %d", hcon, conn, err);
 
 	kfree_skb(conn->rx_skb);
 
 	l2cap_unregister_all_users(conn);
 
+<<<<<<< HEAD
 	mutex_lock(&conn->chan_lock);
 
 	/* Kill channels */
@@ -1604,6 +1677,28 @@ static struct l2cap_conn *l2cap_conn_add(struct hci_conn *hcon)
 	if (!conn) {
 		hci_chan_del(hchan);
 		return NULL;
+=======
+	BT_DBG("conn->hcon %pK", conn->hcon);
+
+	/* Kill channels */
+	for (sk = conn->chan_list.head; sk; ) {
+		BT_DBG("ampcon %pK", l2cap_pi(sk)->ampcon);
+		if ((conn->hcon == hcon) || (l2cap_pi(sk)->ampcon == hcon)) {
+			next = l2cap_pi(sk)->next_c;
+			if (is_process)
+				lock_sock(sk);
+			else
+				bh_lock_sock(sk);
+			l2cap_chan_del(sk, err);
+			if (is_process)
+				release_sock(sk);
+			else
+				bh_unlock_sock(sk);
+			l2cap_sock_kill(sk);
+			sk = next;
+		} else
+			sk = l2cap_pi(sk)->next_c;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	}
 
 	kref_init(&conn->ref);
@@ -1885,8 +1980,15 @@ int __l2cap_wait_ack(struct sock *sk)
 
 static void l2cap_monitor_timeout(struct work_struct *work)
 {
+<<<<<<< HEAD
 	struct l2cap_chan *chan = container_of(work, struct l2cap_chan,
 					       monitor_timer.work);
+=======
+	struct l2cap_pinfo *pi =
+		container_of(work, struct l2cap_pinfo, tx_work);
+	struct sock *sk = (struct sock *)pi;
+	BT_DBG("%pK", pi);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("chan %p", chan);
 
@@ -1930,10 +2032,26 @@ static void l2cap_streaming_send(struct l2cap_chan *chan,
 	struct sk_buff *skb;
 	struct l2cap_ctrl *control;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, skbs %p", chan, skbs);
 
 	if (__chan_is_moving(chan))
 		return;
+=======
+	BT_DBG("sk %pK, skb %pK len %d", sk, skb, skb->len);
+
+	if (pi->ampcon && (pi->amp_move_state == L2CAP_AMP_STATE_STABLE ||
+			pi->amp_move_state == L2CAP_AMP_STATE_WAIT_PREPARE)) {
+		BT_DBG("Sending on AMP connection %pK %pK",
+			pi->ampcon, pi->ampchan);
+		if (pi->ampchan)
+			hci_send_acl(pi->ampcon, pi->ampchan, skb,
+					ACL_COMPLETE);
+		else
+			kfree_skb(skb);
+	} else {
+		u16 flags;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	skb_queue_splice_tail_init(skbs, &chan->tx_q);
 
@@ -1954,7 +2072,12 @@ static void l2cap_streaming_send(struct l2cap_chan *chan,
 			put_unaligned_le16(fcs, skb_put(skb, L2CAP_FCS_SIZE));
 		}
 
+<<<<<<< HEAD
 		l2cap_do_send(chan, skb);
+=======
+		bt_cb(skb)->force_active = pi->force_active;
+		BT_DBG("Sending on BR/EDR connection %pK", pi->conn->hcon);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		BT_DBG("Sent txseq %u", control->txseq);
 
@@ -1969,7 +2092,11 @@ static int l2cap_ertm_send(struct l2cap_chan *chan)
 	struct l2cap_ctrl *control;
 	int sent = 0;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->state != BT_CONNECTED)
 		return -ENOTCONN;
@@ -2040,7 +2167,11 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 	struct sk_buff *tx_skb;
 	u16 seq;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK, skbs %pK", sk, skbs);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (test_bit(CONN_REMOTE_BUSY, &chan->conn_state))
 		return;
@@ -2061,6 +2192,7 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 		bt_cb(skb)->control.retries++;
 		control = bt_cb(skb)->control;
 
+<<<<<<< HEAD
 		if (chan->max_tx != 0 &&
 		    bt_cb(skb)->control.retries > chan->max_tx) {
 			BT_DBG("Retry limit exceeded (%d)", chan->max_tx);
@@ -2068,6 +2200,9 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 			l2cap_seq_list_clear(&chan->retrans_list);
 			break;
 		}
+=======
+		BT_DBG("skb %pK", skb);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		control.reqseq = chan->buffer_seq;
 		if (test_and_clear_bit(CONN_SEND_FBIT, &chan->conn_state))
@@ -2075,6 +2210,7 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 		else
 			control.final = 0;
 
+<<<<<<< HEAD
 		if (skb_cloned(skb)) {
 			/* Cloned sk_buffs are read-only, so we need a
 			 * writeable copy
@@ -2083,6 +2219,9 @@ static void l2cap_ertm_resend(struct l2cap_chan *chan)
 		} else {
 			tx_skb = skb_clone(skb, GFP_KERNEL);
 		}
+=======
+		BT_DBG("control %pK", control);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		if (!tx_skb) {
 			l2cap_seq_list_clear(&chan->retrans_list);
@@ -2157,10 +2296,20 @@ static void l2cap_retransmit_all(struct l2cap_chan *chan,
 
 static void l2cap_send_ack(struct l2cap_chan *chan)
 {
+<<<<<<< HEAD
 	struct l2cap_ctrl control;
 	u16 frames_to_ack = __seq_offset(chan, chan->buffer_seq,
 					 chan->last_acked_seq);
 	int threshold;
+=======
+	struct l2cap_conn *conn = l2cap_pi(sk)->conn;
+	struct sk_buff **frag;
+	struct sk_buff *final;
+	int err, sent = 0;
+
+	BT_DBG("sk %pK, msg %pK, len %d, count %d, skb %pK", sk,
+		msg, (int)len, (int)count, skb);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("chan %p last_acked_seq %d buffer_seq %d",
 	       chan, chan->last_acked_seq, chan->buffer_seq);
@@ -2259,7 +2408,11 @@ static struct sk_buff *l2cap_create_connless_pdu(struct l2cap_chan *chan,
 	int err, count, hlen = L2CAP_HDR_SIZE + L2CAP_PSMLEN_SIZE;
 	struct l2cap_hdr *lh;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p len %zu priority %u", chan, len, priority);
+=======
+	BT_DBG("sk %pK len %d", sk, (int)len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	count = min_t(unsigned int, (conn->mtu - hlen), len);
 
@@ -2293,7 +2446,11 @@ static struct sk_buff *l2cap_create_basic_pdu(struct l2cap_chan *chan,
 	int err, count;
 	struct l2cap_hdr *lh;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p len %zu", chan, len);
+=======
+	BT_DBG("sk %pK len %d", sk, (int)len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	count = min_t(unsigned int, (conn->mtu - L2CAP_HDR_SIZE), len);
 
@@ -2339,7 +2496,40 @@ static struct sk_buff *l2cap_create_iframe_pdu(struct l2cap_chan *chan,
 	if (chan->fcs == L2CAP_FCS_CRC16)
 		hlen += L2CAP_FCS_SIZE;
 
+<<<<<<< HEAD
 	count = min_t(unsigned int, (conn->mtu - hlen), len);
+=======
+	BT_DBG("sk %pK, msg %pK, len %d, sdulen %d, hlen %d",
+		sk, msg, (int)len, (int)sdulen, hlen);
+
+	count = min_t(unsigned int, (l2cap_pi(sk)->conn->mtu - hlen), len);
+
+	/* Allocate extra headroom for Qualcomm PAL.  This is only
+	 * necessary in two places (here and when creating sframes)
+	 * because only unfragmented iframes and sframes are sent
+	 * using AMP controllers.
+	 */
+	if (l2cap_pi(sk)->ampcon &&
+			l2cap_pi(sk)->ampcon->hdev->manufacturer == 0x001d)
+		reserve = BT_SKB_RESERVE_80211;
+
+	/* Don't use bt_skb_send_alloc() while resegmenting, since
+	 * it is not ok to block.
+	 */
+	if (reseg) {
+		skb = bt_skb_alloc(count + hlen + reserve, GFP_ATOMIC);
+		if (skb)
+			skb_set_owner_w(skb, sk);
+	} else {
+		skb = bt_skb_send_alloc(sk, count + hlen + reserve,
+					msg->msg_flags & MSG_DONTWAIT, &err);
+	}
+	if (!skb)
+		return ERR_PTR(err);
+
+	if (reserve)
+		skb_reserve(skb, reserve);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	skb = chan->ops->alloc_skb(chan, count + hlen,
 				   msg->msg_flags & MSG_DONTWAIT);
@@ -2375,10 +2565,37 @@ static int l2cap_segment_sdu(struct l2cap_chan *chan,
 			     struct sk_buff_head *seg_queue,
 			     struct msghdr *msg, size_t len)
 {
+<<<<<<< HEAD
 	struct sk_buff *skb;
 	u16 sdu_len;
 	size_t pdu_len;
 	u8 sar;
+=======
+	struct l2cap_pinfo *pi;
+	struct sk_buff *acked_skb;
+	u16 ackseq;
+
+	BT_DBG("sk %pK, reqseq %d", sk, (int) reqseq);
+
+	pi = l2cap_pi(sk);
+
+	if (pi->unacked_frames == 0 || reqseq == pi->expected_ack_seq)
+		return;
+
+	BT_DBG("expected_ack_seq %d, unacked_frames %d",
+		(int) pi->expected_ack_seq, (int) pi->unacked_frames);
+
+	for (ackseq = pi->expected_ack_seq; ackseq != reqseq;
+		ackseq = __next_seq(ackseq, pi)) {
+
+		acked_skb = l2cap_ertm_seq_in_queue(TX_QUEUE(sk), ackseq);
+		if (acked_skb) {
+			skb_unlink(acked_skb, TX_QUEUE(sk));
+			kfree_skb(acked_skb);
+			pi->unacked_frames--;
+		}
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("chan %p, msg %p, len %zu", chan, msg, len);
 
@@ -2445,8 +2662,31 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 		    u32 priority)
 {
 	struct sk_buff *skb;
+<<<<<<< HEAD
 	int err;
 	struct sk_buff_head seg_queue;
+=======
+	u32 control_field;
+
+	BT_DBG("sk %pK, control %pK", sk, control);
+
+	if (control->frame_type != 's')
+		return;
+
+	pi = l2cap_pi(sk);
+
+	if (pi->amp_move_state != L2CAP_AMP_STATE_STABLE &&
+		pi->amp_move_state != L2CAP_AMP_STATE_WAIT_PREPARE &&
+		pi->amp_move_state != L2CAP_AMP_STATE_RESEGMENT) {
+		BT_DBG("AMP error - attempted S-Frame send during AMP move");
+		return;
+	}
+
+	if ((pi->conn_state & L2CAP_CONN_SEND_FBIT) && !control->poll) {
+		control->final = 1;
+		pi->conn_state &= ~L2CAP_CONN_SEND_FBIT;
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	/* Connectionless channel */
 	if (chan->chan_type == L2CAP_CHAN_CONN_LESS) {
@@ -2469,9 +2709,15 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 		if (IS_ERR(skb))
 			return PTR_ERR(skb);
 
+<<<<<<< HEAD
 		l2cap_do_send(chan, skb);
 		err = len;
 		break;
+=======
+	BT_DBG("sk %pK", sk);
+	BT_DBG("last_acked_seq %d, buffer_seq %d", (int)pi->last_acked_seq,
+		(int)pi->buffer_seq);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	case L2CAP_MODE_ERTM:
 	case L2CAP_MODE_STREAMING:
@@ -2497,6 +2743,7 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 			err = -ENOTCONN;
 		}
 
+<<<<<<< HEAD
 		if (err)
 			break;
 
@@ -2504,6 +2751,41 @@ int l2cap_chan_send(struct l2cap_chan *chan, struct msghdr *msg, size_t len,
 			l2cap_tx(chan, NULL, &seg_queue, L2CAP_EV_DATA_REQUEST);
 		else
 			l2cap_streaming_send(chan, &seg_queue);
+=======
+		if (frames_to_ack)
+			l2cap_ertm_start_ack_timer(pi);
+	}
+}
+
+static void l2cap_ertm_send_rr_or_rnr(struct sock *sk, bool poll)
+{
+	struct l2cap_pinfo *pi;
+	struct bt_l2cap_control control;
+
+	BT_DBG("sk %pK, poll %d", sk, (int) poll);
+
+	pi = l2cap_pi(sk);
+
+	memset(&control, 0, sizeof(control));
+	control.frame_type = 's';
+	control.poll = poll;
+
+	if (pi->conn_state & L2CAP_CONN_LOCAL_BUSY)
+		control.super = L2CAP_SFRAME_RNR;
+	else
+		control.super = L2CAP_SFRAME_RR;
+
+	control.reqseq = pi->buffer_seq;
+	l2cap_ertm_send_sframe(sk, &control);
+}
+
+static void l2cap_ertm_send_i_or_rr_or_rnr(struct sock *sk)
+{
+	struct l2cap_pinfo *pi;
+	struct bt_l2cap_control control;
+
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		err = len;
 
@@ -2526,7 +2808,11 @@ static void l2cap_send_srej(struct l2cap_chan *chan, u16 txseq)
 	struct l2cap_ctrl control;
 	u16 seq;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, txseq %u", chan, txseq);
+=======
+	BT_DBG("sk %pK, txseq %d", sk, (int)txseq);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	memset(&control, 0, sizeof(control));
 	control.sframe = 1;
@@ -2548,7 +2834,13 @@ static void l2cap_send_srej_tail(struct l2cap_chan *chan)
 {
 	struct l2cap_ctrl control;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK", sk);
+
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->srej_list.tail == L2CAP_SEQ_LIST_CLEAR)
 		return;
@@ -2566,7 +2858,11 @@ static void l2cap_send_srej_list(struct l2cap_chan *chan, u16 txseq)
 	u16 initial_head;
 	u16 seq;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, txseq %u", chan, txseq);
+=======
+	BT_DBG("sk %pK, txseq %d", sk, (int) txseq);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	memset(&control, 0, sizeof(control));
 	control.sframe = 1;
@@ -2620,7 +2916,12 @@ static void l2cap_process_reqseq(struct l2cap_chan *chan, u16 reqseq)
 
 static void l2cap_abort_rx_srej_sent(struct l2cap_chan *chan)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	chan->expected_tx_seq = chan->buffer_seq;
 	l2cap_seq_list_clear(&chan->srej_list);
@@ -2632,8 +2933,17 @@ static void l2cap_tx_state_xmit(struct l2cap_chan *chan,
 				struct l2cap_ctrl *control,
 				struct sk_buff_head *skbs, u8 event)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skbs %p, event %d", chan, control, skbs,
 	       event);
+=======
+	struct l2cap_pinfo *pi;
+	int err = 0;
+
+	BT_DBG("sk %pK, control %pK, skbs %pK, event %d", sk, control, skbs,
+		(int)event);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (event) {
 	case L2CAP_EV_DATA_REQUEST:
@@ -2704,8 +3014,17 @@ static void l2cap_tx_state_wait_f(struct l2cap_chan *chan,
 				  struct l2cap_ctrl *control,
 				  struct sk_buff_head *skbs, u8 event)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skbs %p, event %d", chan, control, skbs,
 	       event);
+=======
+	struct l2cap_pinfo *pi;
+	int err = 0;
+
+	BT_DBG("sk %pK, control %pK, skbs %pK, event %d", sk, control, skbs,
+		(int)event);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (event) {
 	case L2CAP_EV_DATA_REQUEST:
@@ -2781,8 +3100,16 @@ static void l2cap_tx_state_wait_f(struct l2cap_chan *chan,
 static void l2cap_tx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		     struct sk_buff_head *skbs, u8 event)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skbs %p, event %d, state %d",
 	       chan, control, skbs, event, chan->tx_state);
+=======
+	struct l2cap_pinfo *pi;
+	int err = 0;
+
+	BT_DBG("sk %pK, control %pK, skbs %pK, event %d, state %d",
+		sk, control, skbs, (int)event, l2cap_pi(sk)->tx_state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (chan->tx_state) {
 	case L2CAP_TX_STATE_XMIT:
@@ -2811,11 +3138,15 @@ static void l2cap_pass_to_tx_fbit(struct l2cap_chan *chan,
 	l2cap_tx(chan, control, NULL, L2CAP_EV_RECV_FBIT);
 }
 
+<<<<<<< HEAD
 /* Copy frame to all raw sockets on that connection */
 static void l2cap_raw_recv(struct l2cap_conn *conn, struct sk_buff *skb)
 {
 	struct sk_buff *nskb;
 	struct l2cap_chan *chan;
+=======
+	BT_DBG("sk %pK, msg %pK, len %d", sk, msg, (int)len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("conn %p", conn);
 
@@ -2837,7 +3168,409 @@ static void l2cap_raw_recv(struct l2cap_conn *conn, struct sk_buff *skb)
 			kfree_skb(nskb);
 	}
 
+<<<<<<< HEAD
 	mutex_unlock(&conn->chan_lock);
+=======
+	if (len <= pdu_len) {
+		sar = L2CAP_SAR_UNSEGMENTED;
+		sdu_len = 0;
+		pdu_len = len;
+	} else {
+		sar = L2CAP_SAR_START;
+		sdu_len = len;
+		pdu_len -= L2CAP_SDULEN_SIZE;
+	}
+
+	while (len) {
+		skb = l2cap_create_iframe_pdu(sk, msg, pdu_len, sdu_len, reseg);
+
+		BT_DBG("iframe skb %pK", skb);
+
+		if (IS_ERR(skb)) {
+			__skb_queue_purge(seg_queue);
+			return PTR_ERR(skb);
+		}
+
+		bt_cb(skb)->control.sar = sar;
+		__skb_queue_tail(seg_queue, skb);
+
+		len -= pdu_len;
+		if (sdu_len) {
+			sdu_len = 0;
+			pdu_len += L2CAP_SDULEN_SIZE;
+		}
+
+		if (len <= pdu_len) {
+			sar = L2CAP_SAR_END;
+			pdu_len = len;
+		} else {
+			sar = L2CAP_SAR_CONTINUE;
+		}
+	}
+
+	return err;
+}
+
+static inline int is_initial_frame(u8 sar)
+{
+	return (sar == L2CAP_SAR_UNSEGMENTED ||
+		sar == L2CAP_SAR_START);
+}
+
+static inline int l2cap_skbuff_to_kvec(struct sk_buff *skb, struct kvec *iv,
+					size_t veclen)
+{
+	struct sk_buff *frag_iter;
+
+	BT_DBG("skb %pK (len %d), iv %pK", skb, (int)skb->len, iv);
+
+	if (iv->iov_len + skb->len > veclen)
+		return -ENOMEM;
+
+	memcpy(iv->iov_base + iv->iov_len, skb->data, skb->len);
+	iv->iov_len += skb->len;
+
+	skb_walk_frags(skb, frag_iter) {
+		if (iv->iov_len + skb->len > veclen)
+			return -ENOMEM;
+
+		BT_DBG("Copying %d bytes", (int)frag_iter->len);
+		memcpy(iv->iov_base + iv->iov_len, frag_iter->data,
+			frag_iter->len);
+		iv->iov_len += frag_iter->len;
+	}
+
+	return 0;
+}
+
+int l2cap_resegment_queue(struct sock *sk, struct sk_buff_head *queue)
+{
+	void *buf;
+	int buflen;
+	int err = 0;
+	struct sk_buff *skb;
+	struct msghdr msg;
+	struct kvec iv;
+	struct sk_buff_head old_frames;
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+
+	BT_DBG("sk %pK", sk);
+
+	if (skb_queue_empty(queue))
+		return 0;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_iov = (struct iovec *) &iv;
+
+	buflen = pi->omtu + L2CAP_FCS_SIZE;
+	buf = kzalloc(buflen, GFP_TEMPORARY);
+
+	if (!buf) {
+		BT_DBG("Could not allocate resegmentation buffer");
+		return -ENOMEM;
+	}
+
+	/* Move current frames off the original queue */
+	__skb_queue_head_init(&old_frames);
+	skb_queue_splice_tail_init(queue, &old_frames);
+
+	while (!skb_queue_empty(&old_frames)) {
+		struct sk_buff_head current_sdu;
+		u8 original_sar;
+
+		/* Reassemble each SDU from one or more PDUs */
+
+		iv.iov_base = buf;
+		iv.iov_len = 0;
+
+		skb = skb_peek(&old_frames);
+		original_sar = bt_cb(skb)->control.sar;
+
+		__skb_unlink(skb, &old_frames);
+
+		/* Append data to SDU */
+		if (pi->extended_control)
+			skb_pull(skb, L2CAP_EXTENDED_HDR_SIZE);
+		else
+			skb_pull(skb, L2CAP_ENHANCED_HDR_SIZE);
+
+		if (original_sar == L2CAP_SAR_START)
+			skb_pull(skb, L2CAP_SDULEN_SIZE);
+
+		err = l2cap_skbuff_to_kvec(skb, &iv, buflen);
+
+		if (bt_cb(skb)->control.fcs == L2CAP_FCS_CRC16)
+			iv.iov_len -= L2CAP_FCS_SIZE;
+
+		/* Free skb */
+		kfree_skb(skb);
+
+		if (err)
+			break;
+
+		while (!skb_queue_empty(&old_frames) && !err) {
+			/* Check next frame */
+			skb = skb_peek(&old_frames);
+
+			if (is_initial_frame(bt_cb(skb)->control.sar))
+				break;
+
+			__skb_unlink(skb, &old_frames);
+
+			/* Append data to SDU */
+			if (pi->extended_control)
+				skb_pull(skb, L2CAP_EXTENDED_HDR_SIZE);
+			else
+				skb_pull(skb, L2CAP_ENHANCED_HDR_SIZE);
+
+			if (bt_cb(skb)->control.sar == L2CAP_SAR_START)
+				skb_pull(skb, L2CAP_SDULEN_SIZE);
+
+			err = l2cap_skbuff_to_kvec(skb, &iv, buflen);
+
+			if (bt_cb(skb)->control.fcs == L2CAP_FCS_CRC16)
+				iv.iov_len -= L2CAP_FCS_SIZE;
+
+			/* Free skb */
+			kfree_skb(skb);
+		}
+
+		if (err)
+			break;
+
+		/* Segment data */
+
+		__skb_queue_head_init(&current_sdu);
+
+		/* skbs for the SDU were just freed, but the
+		 * resegmenting process could produce more, smaller
+		 * skbs due to smaller PDUs and reduced HCI MTU.  The
+		 * overhead from the sk_buff structs could put us over
+		 * the sk_sndbuf limit.
+		 *
+		 * Since this code is running in response to a
+		 * received poll/final packet, it cannot block.
+		 * Therefore, memory allocation needs to be allowed by
+		 * falling back to bt_skb_alloc() (with
+		 * skb_set_owner_w() to maintain sk_wmem_alloc
+		 * correctly).
+		 */
+		msg.msg_iovlen = iv.iov_len;
+		err = l2cap_segment_sdu(sk, &current_sdu, &msg,
+					msg.msg_iovlen, 1);
+
+		if (err || skb_queue_empty(&current_sdu)) {
+			BT_DBG("Error %d resegmenting data for socket %pK",
+				err, sk);
+			__skb_queue_purge(&current_sdu);
+			break;
+		}
+
+		/* Fix up first PDU SAR bits */
+		if (!is_initial_frame(original_sar)) {
+			BT_DBG("Changing SAR bits, %d PDUs",
+				skb_queue_len(&current_sdu));
+			skb = skb_peek(&current_sdu);
+
+			if (skb_queue_len(&current_sdu) == 1) {
+				/* Change SAR from 'unsegmented' to 'end' */
+				bt_cb(skb)->control.sar = L2CAP_SAR_END;
+			} else {
+				struct l2cap_hdr *lh;
+				size_t hdrlen;
+
+				/* Change SAR from 'start' to 'continue' */
+				bt_cb(skb)->control.sar = L2CAP_SAR_CONTINUE;
+
+				/* Start frames contain 2 bytes for
+				 * sdulen and continue frames don't.
+				 * Must rewrite header to eliminate
+				 * sdulen and then adjust l2cap frame
+				 * length.
+				 */
+				if (pi->extended_control)
+					hdrlen = L2CAP_EXTENDED_HDR_SIZE;
+				else
+					hdrlen = L2CAP_ENHANCED_HDR_SIZE;
+
+				memmove(skb->data + L2CAP_SDULEN_SIZE,
+					skb->data, hdrlen);
+				skb_pull(skb, L2CAP_SDULEN_SIZE);
+				lh = (struct l2cap_hdr *)skb->data;
+				lh->len = cpu_to_le16(le16_to_cpu(lh->len) -
+							L2CAP_SDULEN_SIZE);
+			}
+		}
+
+		/* Add to queue */
+		skb_queue_splice_tail(&current_sdu, queue);
+	}
+
+	__skb_queue_purge(&old_frames);
+	if (err)
+		__skb_queue_purge(queue);
+
+	kfree(buf);
+
+	BT_DBG("Queue resegmented, err=%d", err);
+	return err;
+}
+
+static void l2cap_resegment_worker(struct work_struct *work)
+{
+	int err = 0;
+	struct l2cap_resegment_work *seg_work =
+		container_of(work, struct l2cap_resegment_work, work);
+	struct sock *sk = seg_work->sk;
+
+	kfree(seg_work);
+
+	BT_DBG("sk %pK", sk);
+	lock_sock(sk);
+
+	if (l2cap_pi(sk)->amp_move_state != L2CAP_AMP_STATE_RESEGMENT) {
+		release_sock(sk);
+		sock_put(sk);
+		return;
+	}
+
+	err = l2cap_resegment_queue(sk, TX_QUEUE(sk));
+
+	l2cap_pi(sk)->amp_move_state = L2CAP_AMP_STATE_STABLE;
+
+	if (skb_queue_empty(TX_QUEUE(sk)))
+		sk->sk_send_head = NULL;
+	else
+		sk->sk_send_head = skb_peek(TX_QUEUE(sk));
+
+	if (err)
+		l2cap_send_disconn_req(l2cap_pi(sk)->conn, sk, ECONNRESET);
+	else
+		l2cap_ertm_send(sk);
+
+	release_sock(sk);
+	sock_put(sk);
+}
+
+static int l2cap_setup_resegment(struct sock *sk)
+{
+	struct l2cap_resegment_work *seg_work;
+
+	BT_DBG("sk %pK", sk);
+
+	if (skb_queue_empty(TX_QUEUE(sk)))
+		return 0;
+
+	seg_work = kzalloc(sizeof(*seg_work), GFP_ATOMIC);
+	if (!seg_work)
+		return -ENOMEM;
+
+	INIT_WORK(&seg_work->work, l2cap_resegment_worker);
+	sock_hold(sk);
+	seg_work->sk = sk;
+
+	if (!queue_work(_l2cap_wq, &seg_work->work)) {
+		kfree(seg_work);
+		sock_put(sk);
+		return -ENOMEM;
+	}
+
+	l2cap_pi(sk)->amp_move_state = L2CAP_AMP_STATE_RESEGMENT;
+
+	return 0;
+}
+
+static inline int l2cap_rmem_available(struct sock *sk)
+{
+	BT_DBG("sk_rmem_alloc %d, sk_rcvbuf %d",
+		atomic_read(&sk->sk_rmem_alloc), sk->sk_rcvbuf);
+	return atomic_read(&sk->sk_rmem_alloc) < sk->sk_rcvbuf / 3;
+}
+
+static inline int l2cap_rmem_full(struct sock *sk)
+{
+	BT_DBG("sk_rmem_alloc %d, sk_rcvbuf %d",
+		atomic_read(&sk->sk_rmem_alloc), sk->sk_rcvbuf);
+	return atomic_read(&sk->sk_rmem_alloc) > (2 * sk->sk_rcvbuf) / 3;
+}
+
+void l2cap_amp_move_init(struct sock *sk)
+{
+	BT_DBG("sk %pK", sk);
+
+	if (!l2cap_pi(sk)->conn)
+		return;
+
+	if (!(l2cap_pi(sk)->conn->fc_mask & L2CAP_FC_A2MP) || !enable_hs)
+		return;
+
+	if (l2cap_pi(sk)->amp_id == 0) {
+		if (l2cap_pi(sk)->amp_pref != BT_AMP_POLICY_PREFER_AMP)
+			return;
+		l2cap_pi(sk)->amp_move_role = L2CAP_AMP_MOVE_INITIATOR;
+		l2cap_pi(sk)->amp_move_state = L2CAP_AMP_STATE_WAIT_PREPARE;
+		amp_create_physical(l2cap_pi(sk)->conn, sk);
+	} else {
+		l2cap_pi(sk)->amp_move_role = L2CAP_AMP_MOVE_INITIATOR;
+		l2cap_pi(sk)->amp_move_state =
+					L2CAP_AMP_STATE_WAIT_MOVE_RSP_SUCCESS;
+		l2cap_pi(sk)->amp_move_id = 0;
+		l2cap_amp_move_setup(sk);
+		l2cap_send_move_chan_req(l2cap_pi(sk)->conn,
+					l2cap_pi(sk), l2cap_pi(sk)->scid, 0);
+		l2cap_sock_set_timer(sk, L2CAP_MOVE_TIMEOUT);
+	}
+}
+
+static void l2cap_chan_ready(struct sock *sk)
+{
+	struct sock *parent = bt_sk(sk)->parent;
+
+	BT_DBG("sk %pK, parent %pK", sk, parent);
+
+	l2cap_pi(sk)->conf_state = 0;
+	l2cap_sock_clear_timer(sk);
+
+	if (!parent) {
+		/* Outgoing channel.
+		 * Wake up socket sleeping on connect.
+		 */
+		sk->sk_state = BT_CONNECTED;
+		sk->sk_state_change(sk);
+	} else {
+		/* Incoming channel.
+		 * Wake up socket sleeping on accept.
+		 */
+		parent->sk_data_ready(parent, 0);
+	}
+}
+
+/* Copy frame to all raw sockets on that connection */
+static void l2cap_raw_recv(struct l2cap_conn *conn, struct sk_buff *skb)
+{
+	struct l2cap_chan_list *l = &conn->chan_list;
+	struct sk_buff *nskb;
+	struct sock *sk;
+
+	BT_DBG("conn %pK", conn);
+
+	read_lock(&l->lock);
+	for (sk = l->head; sk; sk = l2cap_pi(sk)->next_c) {
+		if (sk->sk_type != SOCK_RAW)
+			continue;
+
+		/* Don't send frame to the socket it came from */
+		if (skb->sk == sk)
+			continue;
+		nskb = skb_clone(skb, GFP_ATOMIC);
+		if (!nskb)
+			continue;
+
+		if (sock_queue_rcv_skb(sk, nskb))
+			kfree_skb(nskb);
+	}
+	read_unlock(&l->lock);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 }
 
 /* ---- L2CAP signalling commands ---- */
@@ -2849,11 +3582,16 @@ static struct sk_buff *l2cap_build_cmd(struct l2cap_conn *conn, u8 code,
 	struct l2cap_hdr *lh;
 	int len, count;
 
+<<<<<<< HEAD
 	BT_DBG("conn %p, code 0x%2.2x, ident 0x%2.2x, len %u",
 	       conn, code, ident, dlen);
 
 	if (conn->mtu < L2CAP_HDR_SIZE + L2CAP_CMD_HDR_SIZE)
 		return NULL;
+=======
+	BT_DBG("conn %pK, code 0x%2.2x, ident 0x%2.2x, len %d",
+			conn, code, ident, dlen);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	len = L2CAP_HDR_SIZE + L2CAP_CMD_HDR_SIZE + dlen;
 	count = min_t(unsigned int, conn->mtu, len);
@@ -2973,7 +3711,18 @@ static void l2cap_add_conf_opt(void **ptr, u8 type, u8 len, unsigned long val)
 
 static void l2cap_add_opt_efs(void **ptr, struct l2cap_chan *chan)
 {
+<<<<<<< HEAD
 	struct l2cap_conf_efs efs;
+=======
+	struct delayed_work *delayed =
+		container_of(work, struct delayed_work, work);
+	struct l2cap_pinfo *pi =
+		container_of(delayed, struct l2cap_pinfo, ack_work);
+	struct sock *sk = (struct sock *)pi;
+	u16 frames_to_ack;
+
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (chan->mode) {
 	case L2CAP_MODE_ERTM:
@@ -3008,7 +3757,11 @@ static void l2cap_ack_timeout(struct work_struct *work)
 					       ack_timer.work);
 	u16 frames_to_ack;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	l2cap_chan_lock(chan);
 
@@ -3026,6 +3779,7 @@ int l2cap_ertm_init(struct l2cap_chan *chan)
 {
 	int err;
 
+<<<<<<< HEAD
 	chan->next_tx_seq = 0;
 	chan->expected_tx_seq = 0;
 	chan->expected_ack_seq = 0;
@@ -3046,6 +3800,9 @@ int l2cap_ertm_init(struct l2cap_chan *chan)
 
 	if (chan->mode != L2CAP_MODE_ERTM)
 		return 0;
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	chan->rx_state = L2CAP_RX_STATE_RECV;
 	chan->tx_state = L2CAP_TX_STATE_XMIT;
@@ -3093,8 +3850,202 @@ static inline bool __l2cap_efs_supported(struct l2cap_chan *chan)
 static void __l2cap_set_ertm_timeouts(struct l2cap_chan *chan,
 				      struct l2cap_conf_rfc *rfc)
 {
+<<<<<<< HEAD
 	if (chan->local_amp_id && chan->hs_hcon) {
 		u64 ertm_to = chan->hs_hcon->hdev->amp_be_flush_to;
+=======
+	lock_sock(sk);
+
+	if (l2cap_pi(sk)->mode != L2CAP_MODE_ERTM ||
+			sk->sk_state != BT_CONNECTED) {
+		release_sock(sk);
+		return;
+	}
+
+	/* Consume any queued incoming frames and update local busy status */
+	if (l2cap_pi(sk)->rx_state == L2CAP_ERTM_RX_STATE_SREJ_SENT &&
+			l2cap_ertm_rx_queued_iframes(sk))
+		l2cap_send_disconn_req(l2cap_pi(sk)->conn, sk, ECONNRESET);
+	else if ((l2cap_pi(sk)->conn_state & L2CAP_CONN_LOCAL_BUSY) &&
+			l2cap_rmem_available(sk))
+		l2cap_ertm_tx(sk, 0, 0, L2CAP_ERTM_EVENT_LOCAL_BUSY_CLEAR);
+
+	release_sock(sk);
+}
+
+static inline __u8 l2cap_select_mode(__u8 mode, __u16 remote_feat_mask)
+{
+	switch (mode) {
+	case L2CAP_MODE_STREAMING:
+	case L2CAP_MODE_ERTM:
+		if (l2cap_mode_supported(mode, remote_feat_mask))
+			return mode;
+		/* fall through */
+	default:
+		return L2CAP_MODE_BASIC;
+	}
+}
+
+static void l2cap_setup_txwin(struct l2cap_pinfo *pi)
+{
+	if (pi->tx_win > L2CAP_TX_WIN_MAX_ENHANCED &&
+		(pi->conn->feat_mask & L2CAP_FEAT_EXT_WINDOW)) {
+		pi->tx_win_max = L2CAP_TX_WIN_MAX_EXTENDED;
+		pi->extended_control = 1;
+	} else {
+		if (pi->tx_win > L2CAP_TX_WIN_MAX_ENHANCED)
+			pi->tx_win = L2CAP_TX_WIN_MAX_ENHANCED;
+
+		pi->tx_win_max = L2CAP_TX_WIN_MAX_ENHANCED;
+		pi->extended_control = 0;
+	}
+	pi->ack_win = pi->tx_win;
+}
+
+static void l2cap_aggregate_fs(struct hci_ext_fs *cur,
+		struct hci_ext_fs *new,
+		struct hci_ext_fs *agg)
+{
+	*agg = *cur;
+	if ((cur->max_sdu != 0xFFFF) && (cur->sdu_arr_time != 0xFFFFFFFF)) {
+		/* current flow spec has known rate */
+		if ((new->max_sdu == 0xFFFF) ||
+				(new->sdu_arr_time == 0xFFFFFFFF)) {
+			/* new fs has unknown rate, so aggregate is unknown */
+			agg->max_sdu = 0xFFFF;
+			agg->sdu_arr_time = 0xFFFFFFFF;
+		} else {
+			/* new fs has known rate, so aggregate is known */
+			u64 cur_rate;
+			u64 new_rate;
+			cur_rate = cur->max_sdu * 1000000ULL;
+			if (cur->sdu_arr_time)
+				cur_rate = div_u64(cur_rate, cur->sdu_arr_time);
+			new_rate = new->max_sdu * 1000000ULL;
+			if (new->sdu_arr_time)
+				new_rate = div_u64(new_rate, new->sdu_arr_time);
+			cur_rate = cur_rate + new_rate;
+			if (cur_rate)
+				agg->sdu_arr_time = div64_u64(
+					agg->max_sdu * 1000000ULL, cur_rate);
+		}
+	}
+}
+
+static int l2cap_aggregate(struct hci_chan *chan, struct l2cap_pinfo *pi)
+{
+	struct hci_ext_fs tx_fs;
+	struct hci_ext_fs rx_fs;
+
+	BT_DBG("chan %pK", chan);
+
+	if (((chan->tx_fs.max_sdu == 0xFFFF) ||
+			(chan->tx_fs.sdu_arr_time == 0xFFFFFFFF)) &&
+			((chan->rx_fs.max_sdu == 0xFFFF) ||
+			(chan->rx_fs.sdu_arr_time == 0xFFFFFFFF)))
+		return 0;
+
+	l2cap_aggregate_fs(&chan->tx_fs,
+				(struct hci_ext_fs *) &pi->local_fs, &tx_fs);
+	l2cap_aggregate_fs(&chan->rx_fs,
+				(struct hci_ext_fs *) &pi->remote_fs, &rx_fs);
+	hci_chan_modify(chan, &tx_fs, &rx_fs);
+	return 1;
+}
+
+static void l2cap_deaggregate_fs(struct hci_ext_fs *cur,
+		struct hci_ext_fs *old,
+		struct hci_ext_fs *agg)
+{
+	*agg = *cur;
+	if ((cur->max_sdu != 0xFFFF) && (cur->sdu_arr_time != 0xFFFFFFFF)) {
+		u64 cur_rate;
+		u64 old_rate;
+		cur_rate = cur->max_sdu * 1000000ULL;
+		if (cur->sdu_arr_time)
+			cur_rate = div_u64(cur_rate, cur->sdu_arr_time);
+		old_rate = old->max_sdu * 1000000ULL;
+		if (old->sdu_arr_time)
+			old_rate = div_u64(old_rate, old->sdu_arr_time);
+		cur_rate = cur_rate - old_rate;
+		if (cur_rate)
+			agg->sdu_arr_time = div64_u64(
+				agg->max_sdu * 1000000ULL, cur_rate);
+	}
+}
+
+static int l2cap_deaggregate(struct hci_chan *chan, struct l2cap_pinfo *pi)
+{
+	struct hci_ext_fs tx_fs;
+	struct hci_ext_fs rx_fs;
+
+	BT_DBG("chan %pK", chan);
+
+	if (((chan->tx_fs.max_sdu == 0xFFFF) ||
+			(chan->tx_fs.sdu_arr_time == 0xFFFFFFFF)) &&
+			((chan->rx_fs.max_sdu == 0xFFFF) ||
+			(chan->rx_fs.sdu_arr_time == 0xFFFFFFFF)))
+		return 0;
+
+	l2cap_deaggregate_fs(&chan->tx_fs,
+				(struct hci_ext_fs *) &pi->local_fs, &tx_fs);
+	l2cap_deaggregate_fs(&chan->rx_fs,
+				(struct hci_ext_fs *) &pi->remote_fs, &rx_fs);
+	hci_chan_modify(chan, &tx_fs, &rx_fs);
+	return 1;
+}
+
+static struct hci_chan *l2cap_chan_admit(u8 amp_id, struct sock *sk)
+{
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+	struct hci_dev *hdev;
+	struct hci_conn *hcon;
+	struct hci_chan *chan;
+
+	hdev = hci_dev_get(amp_id);
+	if (!hdev)
+		return NULL;
+
+	BT_DBG("hdev %s", hdev->name);
+
+	hcon = hci_conn_hash_lookup_ba(hdev, ACL_LINK, pi->conn->dst);
+	if (!hcon) {
+		chan = NULL;
+		goto done;
+	}
+
+	chan = hci_chan_list_lookup_id(hdev, hcon->handle);
+	if (chan) {
+		l2cap_aggregate(chan, pi);
+		sock_hold(sk);
+		chan->l2cap_sk = sk;
+		hci_chan_hold(chan);
+		pi->ampchan = chan;
+		goto done;
+	}
+
+	chan = hci_chan_add(hdev);
+	if (chan) {
+		chan->conn = hcon;
+		sock_hold(sk);
+		chan->l2cap_sk = sk;
+		hci_chan_hold(chan);
+		pi->ampchan = chan;
+		hci_chan_create(chan,
+			(struct hci_ext_fs *) &pi->local_fs,
+			(struct hci_ext_fs *) &pi->remote_fs);
+	}
+done:
+	hci_dev_put(hdev);
+	return chan;
+}
+
+static void l2cap_get_ertm_timeouts(struct l2cap_conf_rfc *rfc,
+						struct l2cap_pinfo *pi)
+{
+	if (pi->amp_id && pi->ampcon) {
+		u64 ertm_to = pi->ampcon->hdev->amp_be_flush_to;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		/* Class 1 devices have must have ERTM timeouts
 		 * exceeding the Link Supervision Timeout.  The
@@ -3150,7 +4101,11 @@ static int l2cap_build_conf_req(struct l2cap_chan *chan, void *data)
 	void *ptr = req->data;
 	u16 size;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK mode %d", sk, pi->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->num_conf_req || chan->num_conf_rsp)
 		goto done;
@@ -3239,8 +4194,12 @@ done:
 			     L2CAP_FCS_SIZE);
 		rfc.max_pdu_size = cpu_to_le16(size);
 
+<<<<<<< HEAD
 		l2cap_add_conf_opt(&ptr, L2CAP_CONF_RFC, sizeof(rfc),
 				   (unsigned long) &rfc);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 		if (test_bit(FLAG_EFS_ENABLE, &chan->flags))
 			l2cap_add_opt_efs(&ptr, chan);
@@ -3276,7 +4235,14 @@ static int l2cap_parse_conf_req(struct l2cap_chan *chan, void *data)
 	u16 result = L2CAP_CONF_SUCCESS;
 	u16 size;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK", sk);
+
+	if (pi->omtu > mtu)
+		mtu = pi->omtu;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	while (len >= L2CAP_CONF_OPT_SIZE) {
 		len -= l2cap_get_conf_opt(&req, &type, &olen, &val);
@@ -3401,10 +4367,49 @@ done:
 			}
 		}
 
+<<<<<<< HEAD
 		switch (rfc.mode) {
 		case L2CAP_MODE_BASIC:
 			chan->fcs = L2CAP_FCS_NONE;
 			set_bit(CONF_MODE_DONE, &chan->conf_state);
+=======
+		if (result == L2CAP_CONF_SUCCESS)
+			pi->conf_state |= L2CAP_CONF_OUTPUT_DONE;
+	}
+	rsp->scid   = cpu_to_le16(pi->dcid);
+	rsp->result = cpu_to_le16(result);
+	rsp->flags  = cpu_to_le16(0x0000);
+
+	return ptr - data;
+}
+
+static int l2cap_parse_amp_move_reconf_req(struct sock *sk, void *data)
+{
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+	struct l2cap_conf_rsp *rsp = data;
+	void *ptr = rsp->data;
+	void *req = pi->conf_req;
+	int len = pi->conf_len;
+	int type, hint, olen;
+	unsigned long val;
+	struct l2cap_conf_rfc rfc = { .mode = L2CAP_MODE_BASIC };
+	struct l2cap_conf_ext_fs fs;
+	u16 mtu = pi->omtu;
+	u16 tx_win = pi->remote_tx_win;
+	u16 result = L2CAP_CONF_SUCCESS;
+
+	BT_DBG("sk %pK", sk);
+
+	while (len >= L2CAP_CONF_OPT_SIZE) {
+		len -= l2cap_get_conf_opt(&req, &type, &olen, &val);
+
+		hint  = type & L2CAP_CONF_HINT;
+		type &= L2CAP_CONF_MASK;
+
+		switch (type) {
+		case L2CAP_CONF_MTU:
+			mtu = val;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 			break;
 
 		case L2CAP_MODE_ERTM:
@@ -3482,8 +4487,14 @@ static int l2cap_parse_conf_rsp(struct l2cap_chan *chan, void *rsp, int len,
 	void *ptr = req->data;
 	int type, olen;
 	unsigned long val;
+<<<<<<< HEAD
 	struct l2cap_conf_rfc rfc = { .mode = L2CAP_MODE_BASIC };
 	struct l2cap_conf_efs efs;
+=======
+	struct l2cap_conf_rfc rfc;
+
+	BT_DBG("sk %pK, rsp %pK, len %d, req %pK", sk, rsp, len, data);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("chan %p, rsp %p, len %d, req %p", chan, rsp, len, data);
 
@@ -3590,7 +4601,11 @@ static int l2cap_build_conf_rsp(struct l2cap_chan *chan, void *data,
 	struct l2cap_conf_rsp *rsp = data;
 	void *ptr = rsp->data;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	rsp->scid   = cpu_to_le16(chan->dcid);
 	rsp->result = cpu_to_le16(result);
@@ -3618,10 +4633,14 @@ void __l2cap_connect_rsp_defer(struct l2cap_chan *chan)
 
 	BT_DBG("chan %p rsp_code %u", chan, rsp_code);
 
+<<<<<<< HEAD
 	l2cap_send_cmd(conn, chan->ident, rsp_code, sizeof(rsp), &rsp);
 
 	if (test_and_set_bit(CONF_REQ_SENT, &chan->conf_state))
 		return;
+=======
+	BT_DBG("sk %pK, rsp %pK, len %d", sk, rsp, len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	l2cap_send_cmd(conn, l2cap_get_ident(conn), L2CAP_CONF_REQ,
 		       l2cap_build_conf_req(chan, buf), buf);
@@ -3675,7 +4694,37 @@ static void l2cap_conf_rfc_get(struct l2cap_chan *chan, void *rsp, int len)
 					      rfc.txwin_size);
 		break;
 	case L2CAP_MODE_STREAMING:
+<<<<<<< HEAD
 		chan->mps    = le16_to_cpu(rfc.max_pdu_size);
+=======
+		pi->mps    = le16_to_cpu(rfc.max_pdu_size);
+	}
+}
+
+static void l2cap_conf_ext_fs_get(struct sock *sk, void *rsp, int len)
+{
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+	int type, olen;
+	unsigned long val;
+	struct l2cap_conf_ext_fs fs;
+
+	BT_DBG("sk %pK, rsp %pK, len %d", sk, rsp, len);
+
+	while (len >= L2CAP_CONF_OPT_SIZE) {
+		len -= l2cap_get_conf_opt(&rsp, &type, &olen, &val);
+		if ((type == L2CAP_CONF_EXT_FS) &&
+				(olen == sizeof(struct l2cap_conf_ext_fs))) {
+			memcpy(&fs, (void *)val, olen);
+			pi->local_fs.id = fs.id;
+			pi->local_fs.type = fs.type;
+			pi->local_fs.max_sdu = le16_to_cpu(fs.max_sdu);
+			pi->local_fs.sdu_arr_time =
+						le32_to_cpu(fs.sdu_arr_time);
+			pi->local_fs.acc_latency = le32_to_cpu(fs.acc_latency);
+			pi->local_fs.flush_to = le32_to_cpu(fs.flush_to);
+			break;
+		}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	}
 }
 
@@ -3683,7 +4732,97 @@ static inline int l2cap_command_rej(struct l2cap_conn *conn,
 				    struct l2cap_cmd_hdr *cmd, u16 cmd_len,
 				    u8 *data)
 {
+<<<<<<< HEAD
 	struct l2cap_cmd_rej_unk *rej = (struct l2cap_cmd_rej_unk *) data;
+=======
+	struct l2cap_pinfo *pi;
+	int err;
+
+	BT_DBG("sk %pK", sk);
+
+	pi = l2cap_pi(sk);
+
+	pi->amp_move_role = L2CAP_AMP_MOVE_NONE;
+	pi->rx_state = L2CAP_ERTM_RX_STATE_RECV;
+
+	if (pi->ampcon)
+		pi->conn->mtu = pi->ampcon->hdev->acl_mtu;
+	else
+		pi->conn->mtu = pi->conn->hcon->hdev->acl_mtu;
+
+	err = l2cap_setup_resegment(sk);
+
+	return err;
+}
+
+static int l2cap_amp_move_reconf_rsp(struct sock *sk, void *rsp, int len,
+					u16 result)
+{
+	int err = 0;
+	struct l2cap_conf_rfc rfc = {.mode = L2CAP_MODE_BASIC};
+	struct l2cap_pinfo *pi = l2cap_pi(sk);
+
+	BT_DBG("sk %pK, rsp %pK, len %d, res 0x%2.2x", sk, rsp, len, result);
+
+	if (pi->reconf_state == L2CAP_RECONF_NONE)
+		return -ECONNREFUSED;
+
+	if (result == L2CAP_CONF_SUCCESS) {
+		while (len >= L2CAP_CONF_OPT_SIZE) {
+			int type, olen;
+			unsigned long val;
+
+			len -= l2cap_get_conf_opt(&rsp, &type, &olen, &val);
+
+			if (type == L2CAP_CONF_RFC) {
+				if (olen == sizeof(rfc))
+					memcpy(&rfc, (void *)val, olen);
+
+				if (rfc.mode != pi->mode) {
+					l2cap_send_disconn_req(pi->conn, sk,
+								ECONNRESET);
+					return -ECONNRESET;
+				}
+
+				goto done;
+			}
+		}
+	}
+
+	BT_ERR("Expected RFC option was missing, using existing values");
+
+	rfc.mode = pi->mode;
+	rfc.retrans_timeout = cpu_to_le16(pi->retrans_timeout);
+	rfc.monitor_timeout = cpu_to_le16(pi->monitor_timeout);
+
+done:
+	l2cap_ertm_stop_ack_timer(pi);
+	l2cap_ertm_stop_retrans_timer(pi);
+	l2cap_ertm_stop_monitor_timer(pi);
+
+	pi->mps = le16_to_cpu(rfc.max_pdu_size);
+	if (pi->mode == L2CAP_MODE_ERTM) {
+		pi->retrans_timeout = le16_to_cpu(rfc.retrans_timeout);
+		pi->monitor_timeout = le16_to_cpu(rfc.monitor_timeout);
+	}
+
+	if (l2cap_pi(sk)->reconf_state == L2CAP_RECONF_ACC) {
+		l2cap_pi(sk)->reconf_state = L2CAP_RECONF_NONE;
+
+		/* Respond to poll */
+		err = l2cap_answer_move_poll(sk);
+	} else if (l2cap_pi(sk)->reconf_state == L2CAP_RECONF_INT) {
+		if (pi->mode == L2CAP_MODE_ERTM) {
+			l2cap_ertm_tx(sk, NULL, NULL,
+					L2CAP_ERTM_EVENT_EXPLICIT_POLL);
+			pi->rx_state = L2CAP_ERTM_RX_STATE_WAIT_F_FLAG;
+		}
+	}
+
+	return err;
+}
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (cmd_len < sizeof(*rej))
 		return -EPROTO;
@@ -4468,7 +5607,12 @@ static void l2cap_send_move_chan_req(struct l2cap_chan *chan, u8 dest_amp_id)
 	struct l2cap_move_chan_req req;
 	u8 ident;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, dest_amp_id %d", chan, dest_amp_id);
+=======
+	BT_DBG("pi %pK, icid %d, dest_amp_id %d", pi, (int) icid,
+		(int) dest_amp_id);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	ident = l2cap_get_ident(chan->conn);
 	chan->ident = ident;
@@ -4573,6 +5717,29 @@ static void l2cap_logical_fail(struct l2cap_chan *chan)
 		l2cap_send_move_chan_cfm(chan, L2CAP_MC_UNCONFIRMED);
 		break;
 	}
+<<<<<<< HEAD
+=======
+
+	sk = l2cap_create_connect(conn, cmd, data, L2CAP_CREATE_CHAN_RSP,
+					req->amp_id);
+
+	if (sk)
+		l2cap_pi(sk)->conf_state |= L2CAP_CONF_LOCKSTEP;
+
+	if (sk && req->amp_id &&
+			(conn->info_state & L2CAP_INFO_FEAT_MASK_REQ_DONE))
+		amp_accept_physical(conn, req->amp_id, sk);
+
+	return 0;
+}
+
+static inline int l2cap_create_channel_rsp(struct l2cap_conn *conn,
+					struct l2cap_cmd_hdr *cmd, u8 *data)
+{
+	BT_DBG("conn %pK", conn);
+
+	return l2cap_connect_rsp(conn, cmd, data);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 }
 
 static void l2cap_logical_finish_create(struct l2cap_chan *chan,
@@ -4851,10 +6018,24 @@ static inline int l2cap_move_channel_req(struct l2cap_conn *conn,
 		goto send_move_response;
 	}
 
+<<<<<<< HEAD
 	if (chan->local_amp_id == req->dest_amp_id) {
 		result = L2CAP_MR_SAME_ID;
 		goto send_move_response;
 	}
+=======
+	kfree_skb(ampwork->skb);
+	kfree(ampwork);
+}
+
+void l2cap_amp_physical_complete(int result, u8 local_id, u8 remote_id,
+				struct sock *sk)
+{
+	struct l2cap_pinfo *pi;
+
+	BT_DBG("result %d, local_id %d, remote_id %d, sk %pK", result,
+		(int) local_id, (int) remote_id, sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (req->dest_amp_id) {
 		struct hci_dev *hdev;
@@ -4912,8 +6093,24 @@ send_move_response:
 
 static void l2cap_move_continue(struct l2cap_conn *conn, u16 icid, u16 result)
 {
+<<<<<<< HEAD
 	struct l2cap_chan *chan;
 	struct hci_chan *hchan = NULL;
+=======
+	struct l2cap_pinfo *pi;
+	struct sock *sk;
+	struct hci_chan *ampchan;
+	struct hci_conn *ampcon;
+
+	BT_DBG("status %d, chan %pK, conn %pK", (int) status, chan, chan->conn);
+
+	sk = chan->l2cap_sk;
+	chan->l2cap_sk = NULL;
+
+	BT_DBG("sk %pK", sk);
+
+	lock_sock(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	chan = l2cap_get_chan_by_scid(conn, icid);
 	if (!chan) {
@@ -5044,10 +6241,14 @@ static int l2cap_move_channel_rsp(struct l2cap_conn *conn,
 
 	BT_DBG("icid 0x%4.4x, result 0x%4.4x", icid, result);
 
+<<<<<<< HEAD
 	if (result == L2CAP_MR_SUCCESS || result == L2CAP_MR_PEND)
 		l2cap_move_continue(conn, icid, result);
 	else
 		l2cap_move_fail(conn, cmd->ident, icid, result);
+=======
+	BT_DBG("chan %pK conn %pK status %d", chan, conn, status);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	return 0;
 }
@@ -5056,9 +6257,17 @@ static int l2cap_move_channel_confirm(struct l2cap_conn *conn,
 				      struct l2cap_cmd_hdr *cmd,
 				      u16 cmd_len, void *data)
 {
+<<<<<<< HEAD
 	struct l2cap_move_chan_cfm *cfm = data;
 	struct l2cap_chan *chan;
 	u16 icid, result;
+=======
+	struct l2cap_chan_list *l;
+	struct l2cap_conn *conn = chan->conn->l2cap_data;
+	struct sock *sk;
+
+	BT_DBG("chan %pK conn %pK", chan, conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (cmd_len != sizeof(*cfm))
 		return -EPROTO;
@@ -5362,9 +6571,81 @@ static int l2cap_check_fcs(struct l2cap_chan *chan,  struct sk_buff *skb)
 	return 0;
 }
 
+<<<<<<< HEAD
 static void l2cap_send_i_or_rr_or_rnr(struct l2cap_chan *chan)
 {
 	struct l2cap_ctrl control;
+=======
+static void l2cap_ertm_pass_to_tx(struct sock *sk,
+				struct bt_l2cap_control *control)
+{
+	BT_DBG("sk %pK, control %pK", sk, control);
+	l2cap_ertm_tx(sk, control, 0, L2CAP_ERTM_EVENT_RECV_REQSEQ_AND_FBIT);
+}
+
+static void l2cap_ertm_pass_to_tx_fbit(struct sock *sk,
+				struct bt_l2cap_control *control)
+{
+	BT_DBG("sk %pK, control %pK", sk, control);
+	l2cap_ertm_tx(sk, control, 0, L2CAP_ERTM_EVENT_RECV_FBIT);
+}
+
+static void l2cap_ertm_resend(struct sock *sk)
+{
+	struct bt_l2cap_control control;
+	struct l2cap_pinfo *pi;
+	struct sk_buff *skb;
+	struct sk_buff *tx_skb;
+	u16 seq;
+
+	BT_DBG("sk %pK", sk);
+
+	pi = l2cap_pi(sk);
+
+	if (pi->conn_state & L2CAP_CONN_REMOTE_BUSY)
+		return;
+
+	if (pi->amp_move_state != L2CAP_AMP_STATE_STABLE &&
+			pi->amp_move_state != L2CAP_AMP_STATE_WAIT_PREPARE)
+		return;
+
+	while (pi->retrans_list.head != L2CAP_SEQ_LIST_CLEAR) {
+		seq = l2cap_seq_list_pop(&pi->retrans_list);
+
+		skb = l2cap_ertm_seq_in_queue(TX_QUEUE(sk), seq);
+		if (!skb) {
+			BT_DBG("Error: Can't retransmit seq %d, frame missing",
+				(int) seq);
+			continue;
+		}
+
+		bt_cb(skb)->retries += 1;
+		control = bt_cb(skb)->control;
+
+		if ((pi->max_tx != 0) && (bt_cb(skb)->retries > pi->max_tx)) {
+			BT_DBG("Retry limit exceeded (%d)", (int) pi->max_tx);
+			l2cap_send_disconn_req(pi->conn, sk, ECONNRESET);
+			l2cap_seq_list_clear(&pi->retrans_list);
+			break;
+		}
+
+		control.reqseq = pi->buffer_seq;
+		if (pi->conn_state & L2CAP_CONN_SEND_FBIT) {
+			control.final = 1;
+			pi->conn_state &= ~L2CAP_CONN_SEND_FBIT;
+		} else {
+			control.final = 0;
+		}
+
+		if (skb_cloned(skb)) {
+			/* Cloned sk_buffs are read-only, so we need a
+			 * writeable copy
+			 */
+			tx_skb = skb_copy(skb, GFP_ATOMIC);
+		} else {
+			tx_skb = skb_clone(skb, GFP_ATOMIC);
+		}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("chan %p", chan);
 
@@ -5379,9 +6660,45 @@ static void l2cap_send_i_or_rr_or_rnr(struct l2cap_chan *chan)
 		l2cap_send_sframe(chan, &control);
 	}
 
+<<<<<<< HEAD
 	if (test_and_clear_bit(CONN_REMOTE_BUSY, &chan->conn_state) &&
 	    chan->unacked_frames > 0)
 		__set_retrans_timer(chan);
+=======
+static inline void l2cap_ertm_retransmit(struct sock *sk,
+					struct bt_l2cap_control *control)
+{
+	BT_DBG("sk %pK, control %pK", sk, control);
+
+	l2cap_seq_list_append(&l2cap_pi(sk)->retrans_list, control->reqseq);
+	l2cap_ertm_resend(sk);
+}
+
+static void l2cap_ertm_retransmit_all(struct sock *sk,
+				struct bt_l2cap_control *control)
+{
+	struct l2cap_pinfo *pi;
+	struct sk_buff *skb;
+
+	BT_DBG("sk %pK, control %pK", sk, control);
+
+	pi = l2cap_pi(sk);
+
+	if (control->poll)
+		pi->conn_state |= L2CAP_CONN_SEND_FBIT;
+
+	l2cap_seq_list_clear(&pi->retrans_list);
+
+	if (pi->conn_state & L2CAP_CONN_REMOTE_BUSY)
+		return;
+
+	if (pi->unacked_frames) {
+		skb_queue_walk(TX_QUEUE(sk), skb) {
+			if ((bt_cb(skb)->control.txseq == control->reqseq) ||
+				skb == sk->sk_send_head)
+				break;
+		}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	/* Send pending iframes */
 	l2cap_ertm_send(chan);
@@ -5402,6 +6719,11 @@ static void append_skb_frag(struct sk_buff *skb, struct sk_buff *new_frag,
 	/* skb->len reflects data in skb as well as all fragments
 	 * skb->data_len reflects only data in fragments
 	 */
+<<<<<<< HEAD
+=======
+	BT_DBG("skb %pK, new_frag %pK, *last_frag %pK", skb, new_frag, *last_frag);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	if (!skb_has_frag_list(skb))
 		skb_shinfo(skb)->frag_list = new_frag;
 
@@ -5420,6 +6742,21 @@ static int l2cap_reassemble_sdu(struct l2cap_chan *chan, struct sk_buff *skb,
 {
 	int err = -EINVAL;
 
+<<<<<<< HEAD
+=======
+	BT_DBG("sk %pK, control %pK, skb %pK len %d truesize %d", sk, control,
+		skb, skb->len, skb->truesize);
+
+	if (!control)
+		return err;
+
+	pi = l2cap_pi(sk);
+
+	BT_DBG("type %c, sar %d, txseq %d, reqseq %d, final %d",
+		control->frame_type, control->sar, control->txseq,
+		control->reqseq, control->final);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 	switch (control->sar) {
 	case L2CAP_SAR_UNSEGMENTED:
 		if (chan->sdu)
@@ -5521,7 +6858,14 @@ static int l2cap_rx_queued_iframes(struct l2cap_chan *chan)
 	 * until a gap is encountered.
 	 */
 
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	struct l2cap_pinfo *pi;
+
+	BT_DBG("sk %pK", sk);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	while (!test_bit(CONN_LOCAL_BUSY, &chan->conn_state)) {
 		struct sk_buff *skb;
@@ -5553,7 +6897,11 @@ static void l2cap_handle_srej(struct l2cap_chan *chan,
 {
 	struct sk_buff *skb;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p", chan, control);
+=======
+	BT_DBG("sk %pK, control %pK", sk, control);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (control->reqseq == chan->next_tx_seq) {
 		BT_DBG("Invalid reqseq %d, disconnecting", control->reqseq);
@@ -5611,7 +6959,13 @@ static void l2cap_handle_rej(struct l2cap_chan *chan,
 {
 	struct sk_buff *skb;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p", chan, control);
+=======
+	BT_DBG("sk %pK, control %pK", sk, control);
+
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (control->reqseq == chan->next_tx_seq) {
 		BT_DBG("Invalid reqseq %d, disconnecting", control->reqseq);
@@ -5645,7 +6999,14 @@ static void l2cap_handle_rej(struct l2cap_chan *chan,
 
 static u8 l2cap_classify_txseq(struct l2cap_chan *chan, u16 txseq)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p, txseq %d", chan, txseq);
+=======
+	struct l2cap_pinfo *pi;
+
+	BT_DBG("sk %pK, txseq %d", sk, (int)txseq);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("last_acked_seq %d, expected_tx_seq %d", chan->last_acked_seq,
 	       chan->expected_tx_seq);
@@ -5736,8 +7097,14 @@ static int l2cap_rx_state_recv(struct l2cap_chan *chan,
 	int err = 0;
 	bool skb_in_use = 0;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skb %p, event %d", chan, control, skb,
 	       event);
+=======
+	BT_DBG("sk %pK, control %pK, skb %pK, event %d", sk, control, skb,
+		(int)event);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (event) {
 	case L2CAP_EV_RECV_IFRAME:
@@ -5792,8 +7159,13 @@ static int l2cap_rx_state_recv(struct l2cap_chan *chan,
 			 */
 			skb_queue_tail(&chan->srej_q, skb);
 			skb_in_use = 1;
+<<<<<<< HEAD
 			BT_DBG("Queued %p (queue len %d)", skb,
 			       skb_queue_len(&chan->srej_q));
+=======
+			BT_DBG("Queued %pK (queue len %d)", skb,
+			       skb_queue_len(SREJ_QUEUE(sk)));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			clear_bit(CONN_SREJ_ACT, &chan->conn_state);
 			l2cap_seq_list_clear(&chan->srej_list);
@@ -5856,7 +7228,7 @@ static int l2cap_rx_state_recv(struct l2cap_chan *chan,
 	}
 
 	if (skb && !skb_in_use) {
-		BT_DBG("Freeing %p", skb);
+		BT_DBG("Freeing %pK", skb);
 		kfree_skb(skb);
 	}
 
@@ -5871,8 +7243,14 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 	u16 txseq = control->txseq;
 	bool skb_in_use = 0;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skb %p, event %d", chan, control, skb,
 	       event);
+=======
+	BT_DBG("sk %pK, control %pK, skb %pK, event %d", sk, control, skb,
+		(int)event);
+	pi = l2cap_pi(sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (event) {
 	case L2CAP_EV_RECV_IFRAME:
@@ -5882,8 +7260,13 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 			l2cap_pass_to_tx(chan, control);
 			skb_queue_tail(&chan->srej_q, skb);
 			skb_in_use = 1;
+<<<<<<< HEAD
 			BT_DBG("Queued %p (queue len %d)", skb,
 			       skb_queue_len(&chan->srej_q));
+=======
+			BT_DBG("Queued %pK (queue len %d)", skb,
+			       skb_queue_len(SREJ_QUEUE(sk)));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			chan->expected_tx_seq = __next_seq(chan, txseq);
 			break;
@@ -5893,8 +7276,13 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 			l2cap_pass_to_tx(chan, control);
 			skb_queue_tail(&chan->srej_q, skb);
 			skb_in_use = 1;
+<<<<<<< HEAD
 			BT_DBG("Queued %p (queue len %d)", skb,
 			       skb_queue_len(&chan->srej_q));
+=======
+			BT_DBG("Queued %pK (queue len %d)", skb,
+			       skb_queue_len(SREJ_QUEUE(sk)));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			err = l2cap_rx_queued_iframes(chan);
 			if (err)
@@ -5908,8 +7296,13 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 			 */
 			skb_queue_tail(&chan->srej_q, skb);
 			skb_in_use = 1;
+<<<<<<< HEAD
 			BT_DBG("Queued %p (queue len %d)", skb,
 			       skb_queue_len(&chan->srej_q));
+=======
+			BT_DBG("Queued %pK (queue len %d)", skb,
+			       skb_queue_len(SREJ_QUEUE(sk)));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			l2cap_pass_to_tx(chan, control);
 			l2cap_send_srej(chan, control->txseq);
@@ -5922,8 +7315,13 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 			 */
 			skb_queue_tail(&chan->srej_q, skb);
 			skb_in_use = 1;
+<<<<<<< HEAD
 			BT_DBG("Queued %p (queue len %d)", skb,
 			       skb_queue_len(&chan->srej_q));
+=======
+			BT_DBG("Queued %pK (queue len %d)", skb,
+			       skb_queue_len(SREJ_QUEUE(sk)));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			l2cap_pass_to_tx(chan, control);
 			l2cap_send_srej_list(chan, control->txseq);
@@ -5999,7 +7397,7 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 	}
 
 	if (skb && !skb_in_use) {
-		BT_DBG("Freeing %p", skb);
+		BT_DBG("Freeing %pK", skb);
 		kfree_skb(skb);
 	}
 
@@ -6008,14 +7406,53 @@ static int l2cap_rx_state_srej_sent(struct l2cap_chan *chan,
 
 static int l2cap_finish_move(struct l2cap_chan *chan)
 {
+<<<<<<< HEAD
 	BT_DBG("chan %p", chan);
+=======
+	struct l2cap_pinfo *pi;
+	int err = 0;
+	bool skb_in_use = 0;
+
+	BT_DBG("sk %pK, control %pK, skb %pK, event %d", sk, control, skb,
+		(int)event);
+	pi = l2cap_pi(sk);
+
+	/* Only handle expected frames, to avoid state changes. */
+
+	switch (event) {
+	case L2CAP_ERTM_EVENT_RECV_IFRAME:
+		if (l2cap_ertm_classify_txseq(sk, control->txseq) ==
+				L2CAP_ERTM_TXSEQ_EXPECTED) {
+			l2cap_ertm_pass_to_tx(sk, control);
+
+			if (pi->conn_state & L2CAP_CONN_LOCAL_BUSY) {
+				BT_DBG("Busy, discarding expected seq %d",
+					control->txseq);
+				break;
+			}
+
+			pi->expected_tx_seq = __next_seq(control->txseq, pi);
+			pi->buffer_seq = pi->expected_tx_seq;
+			skb_in_use = 1;
+
+			err = l2cap_ertm_rx_expected_iframe(sk, control, skb);
+			if (err)
+				break;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	chan->rx_state = L2CAP_RX_STATE_RECV;
 
+<<<<<<< HEAD
 	if (chan->hs_hcon)
 		chan->conn->mtu = chan->hs_hcon->hdev->block_mtu;
 	else
 		chan->conn->mtu = chan->conn->hcon->hdev->acl_mtu;
+=======
+	if (skb && !skb_in_use) {
+		BT_DBG("Freeing %pK", skb);
+		kfree_skb(skb);
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	return l2cap_resegment(chan);
 }
@@ -6026,8 +7463,12 @@ static int l2cap_rx_state_wait_p(struct l2cap_chan *chan,
 {
 	int err;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skb %p, event %d", chan, control, skb,
 	       event);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!control->poll)
 		return -EPROTO;
@@ -6042,8 +7483,56 @@ static int l2cap_rx_state_wait_p(struct l2cap_chan *chan,
 	/* Rewind next_tx_seq to the point expected
 	 * by the receiver.
 	 */
+<<<<<<< HEAD
 	chan->next_tx_seq = control->reqseq;
 	chan->unacked_frames = 0;
+=======
+	pi->next_tx_seq = pi->amp_move_reqseq;
+	pi->unacked_frames = 0;
+
+	err = l2cap_finish_amp_move(sk);
+
+	if (err)
+		return err;
+
+	pi->conn_state |= L2CAP_CONN_SEND_FBIT;
+	l2cap_ertm_send_i_or_rr_or_rnr(sk);
+
+	memset(&control, 0, sizeof(control));
+	control.reqseq = pi->amp_move_reqseq;
+
+	if (pi->amp_move_event == L2CAP_ERTM_EVENT_RECV_IFRAME)
+		err = -EPROTO;
+	else
+		err = l2cap_ertm_rx_state_recv(sk, &control, NULL,
+					pi->amp_move_event);
+
+	return err;
+}
+
+static void l2cap_amp_move_setup(struct sock *sk)
+{
+	struct l2cap_pinfo *pi;
+	struct sk_buff *skb;
+
+	BT_DBG("sk %pK", sk);
+
+	pi = l2cap_pi(sk);
+
+	l2cap_ertm_stop_ack_timer(pi);
+	l2cap_ertm_stop_retrans_timer(pi);
+	l2cap_ertm_stop_monitor_timer(pi);
+
+	pi->retry_count = 0;
+	skb_queue_walk(TX_QUEUE(sk), skb) {
+		if (bt_cb(skb)->retries)
+			bt_cb(skb)->retries = 1;
+		else
+			break;
+	}
+
+	pi->expected_tx_seq = pi->buffer_seq;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	err = l2cap_finish_move(chan);
 	if (err)
@@ -6064,8 +7553,12 @@ static int l2cap_rx_state_wait_f(struct l2cap_chan *chan,
 {
 	int err;
 
+<<<<<<< HEAD
 	if (!control->final)
 		return -EPROTO;
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	clear_bit(CONN_REMOTE_BUSY, &chan->conn_state);
 
@@ -6088,7 +7581,11 @@ static int l2cap_rx_state_wait_f(struct l2cap_chan *chan,
 	else
 		chan->conn->mtu = chan->conn->hcon->hdev->acl_mtu;
 
+<<<<<<< HEAD
 	err = l2cap_resegment(chan);
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!err)
 		err = l2cap_rx_state_recv(chan, control, skb, event);
@@ -6101,9 +7598,13 @@ static bool __valid_reqseq(struct l2cap_chan *chan, u16 reqseq)
 	/* Make sure reqseq is for a packet that has been sent but not acked */
 	u16 unacked;
 
+<<<<<<< HEAD
 	unacked = __seq_offset(chan, chan->next_tx_seq, chan->expected_ack_seq);
 	return __seq_offset(chan, chan->next_tx_seq, reqseq) <= unacked;
 }
+=======
+	BT_DBG("sk %pK", sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 static int l2cap_rx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		    struct sk_buff *skb, u8 event)
@@ -6147,8 +7648,13 @@ static int l2cap_stream_rx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 {
 	int err = 0;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, control %p, skb %p, state %d", chan, control, skb,
 	       chan->rx_state);
+=======
+	BT_DBG("sk %pK, control %pK, skb %pK, state %d",
+		sk, control, skb, l2cap_pi(sk)->rx_state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (l2cap_classify_txseq(chan, control->txseq) ==
 	    L2CAP_TXSEQ_EXPECTED) {
@@ -6169,7 +7675,7 @@ static int l2cap_stream_rx(struct l2cap_chan *chan, struct l2cap_ctrl *control,
 		chan->sdu_len = 0;
 
 		if (skb) {
-			BT_DBG("Freeing %p", skb);
+			BT_DBG("Freeing %pK", skb);
 			kfree_skb(skb);
 		}
 	}
@@ -6186,7 +7692,12 @@ static int l2cap_data_rcv(struct l2cap_chan *chan, struct sk_buff *skb)
 	u16 len;
 	u8 event;
 
+<<<<<<< HEAD
 	__unpack_control(chan, skb);
+=======
+	BT_DBG("sk %pK, control %pK, skb %pK, event %d, state %d",
+		sk, control, skb, (int)event, l2cap_pi(sk)->rx_state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	len = skb->len;
 
@@ -6291,7 +7802,11 @@ static void l2cap_data_channel(struct l2cap_conn *conn, u16 cid,
 		}
 	}
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, len %d", chan, skb->len);
+=======
+	BT_DBG("sk %pK, len %d, mode %d", sk, skb->len, pi->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->state != BT_CONNECTED)
 		goto drop;
@@ -6316,7 +7831,11 @@ static void l2cap_data_channel(struct l2cap_conn *conn, u16 cid,
 		goto done;
 
 	default:
+<<<<<<< HEAD
 		BT_DBG("chan %p: bad mode 0x%2.2x", chan, chan->mode);
+=======
+		BT_DBG("sk %pK: bad mode 0x%2.2x", sk, pi->mode);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 		break;
 	}
 
@@ -6336,7 +7855,13 @@ static void l2cap_conless_channel(struct l2cap_conn *conn, __le16 psm,
 	if (!chan)
 		goto drop;
 
+<<<<<<< HEAD
 	BT_DBG("chan %p, len %d", chan, skb->len);
+=======
+	bh_lock_sock(sk);
+
+	BT_DBG("sk %pK, len %d", sk, skb->len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->state != BT_BOUND && chan->state != BT_CONNECTED)
 		goto drop;
@@ -6356,12 +7881,23 @@ static void l2cap_att_channel(struct l2cap_conn *conn,
 {
 	struct l2cap_chan *chan;
 
+<<<<<<< HEAD
 	chan = l2cap_global_chan_by_scid(0, L2CAP_CID_LE_DATA,
 					 conn->src, conn->dst);
 	if (!chan)
 		goto drop;
 
 	BT_DBG("chan %p, len %d", chan, skb->len);
+=======
+	BT_DBG("sk %pK, dir:%d", sk, dir);
+
+	if (!sk)
+		goto drop;
+
+	bh_lock_sock(sk);
+
+	BT_DBG("sk %pK, len %d", sk, skb->len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (chan->state != BT_BOUND && chan->state != BT_CONNECTED)
 		goto drop;
@@ -6415,7 +7951,28 @@ static void l2cap_recv_frame(struct l2cap_conn *conn, struct sk_buff *skb)
 		break;
 
 	default:
+<<<<<<< HEAD
 		l2cap_data_channel(conn, cid, skb);
+=======
+		sk = l2cap_get_chan_by_scid(&conn->chan_list, cid);
+		if (sk) {
+			if (sock_owned_by_user(sk)) {
+				BT_DBG("backlog sk %pK", sk);
+				if (sk_add_backlog(sk, skb))
+					kfree_skb(skb);
+			} else
+				l2cap_data_channel(sk, skb);
+
+			bh_unlock_sock(sk);
+		} else if ((cid == L2CAP_CID_A2MP) && enable_hs) {
+			BT_DBG("A2MP");
+			amp_conn_ind(conn->hcon, skb);
+		} else {
+			BT_DBG("unknown cid 0x%4.4x", cid);
+			kfree_skb(skb);
+		}
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 		break;
 	}
 }
@@ -6457,7 +8014,14 @@ void l2cap_connect_cfm(struct hci_conn *hcon, u8 status)
 {
 	struct l2cap_conn *conn;
 
+<<<<<<< HEAD
 	BT_DBG("hcon %p bdaddr %pMR status %d", hcon, &hcon->dst, status);
+=======
+	BT_DBG("hcon %pK bdaddr %s status %d", hcon, batostr(&hcon->dst), status);
+
+	if (!(hcon->type == ACL_LINK || hcon->type == LE_LINK))
+		return -EINVAL;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!status) {
 		conn = l2cap_conn_add(hcon);
@@ -6472,7 +8036,7 @@ int l2cap_disconn_ind(struct hci_conn *hcon)
 {
 	struct l2cap_conn *conn = hcon->l2cap_data;
 
-	BT_DBG("hcon %p", hcon);
+	BT_DBG("hcon %pK", hcon);
 
 	if (!conn)
 		return HCI_ERROR_REMOTE_USER_TERM;
@@ -6481,7 +8045,7 @@ int l2cap_disconn_ind(struct hci_conn *hcon)
 
 void l2cap_disconn_cfm(struct hci_conn *hcon, u8 reason)
 {
-	BT_DBG("hcon %p reason %d", hcon, reason);
+	BT_DBG("hcon %pK reason %d", hcon, reason);
 
 	l2cap_conn_del(hcon, bt_to_errno(reason));
 }
@@ -6512,11 +8076,15 @@ int l2cap_security_cfm(struct hci_conn *hcon, u8 status, u8 encrypt)
 
 	BT_DBG("conn %p status 0x%2.2x encrypt %u", conn, status, encrypt);
 
+<<<<<<< HEAD
 	if (hcon->type == LE_LINK) {
 		if (!status && encrypt)
 			smp_distribute_keys(conn, 0);
 		cancel_delayed_work(&conn->security_timer);
 	}
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	mutex_lock(&conn->chan_lock);
 
@@ -6634,7 +8202,7 @@ int l2cap_recv_acldata(struct hci_conn *hcon, struct sk_buff *skb, u16 flags)
 	if (!conn)
 		goto drop;
 
-	BT_DBG("conn %p len %d flags 0x%x", conn, skb->len, flags);
+	BT_DBG("conn %pK len %d flags 0x%x", conn, skb->len, flags);
 
 	switch (flags) {
 	case ACL_START:

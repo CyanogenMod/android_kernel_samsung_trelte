@@ -213,7 +213,7 @@ static int cmd_status(struct sock *sk, u16 index, u16 cmd, u8 status)
 	struct mgmt_ev_cmd_status *ev;
 	int err;
 
-	BT_DBG("sock %p, index %u, cmd %u, status %u", sk, index, cmd, status);
+	BT_DBG("sock %pK, index %u, cmd %u, status %u", sk, index, cmd, status);
 
 	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev), GFP_KERNEL);
 	if (!skb)
@@ -244,7 +244,7 @@ static int cmd_complete(struct sock *sk, u16 index, u16 cmd, u8 status,
 	struct mgmt_ev_cmd_complete *ev;
 	int err;
 
-	BT_DBG("sock %p", sk);
+	BT_DBG("sock %pK", sk);
 
 	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev) + rp_len, GFP_KERNEL);
 	if (!skb)
@@ -275,7 +275,7 @@ static int read_version(struct sock *sk, struct hci_dev *hdev, void *data,
 {
 	struct mgmt_rp_read_version rp;
 
-	BT_DBG("sock %p", sk);
+	BT_DBG("sock %pK", sk);
 
 	rp.version = MGMT_VERSION;
 	rp.revision = __constant_cpu_to_le16(MGMT_REVISION);
@@ -327,7 +327,7 @@ static int read_index_list(struct sock *sk, struct hci_dev *hdev, void *data,
 	u16 count;
 	int err;
 
-	BT_DBG("sock %p", sk);
+	BT_DBG("sock %pK", sk);
 
 	read_lock(&hci_dev_list_lock);
 
@@ -375,8 +375,12 @@ static u32 get_supported_settings(struct hci_dev *hdev)
 {
 	u32 settings = 0;
 
+<<<<<<< HEAD
 	settings |= MGMT_SETTING_POWERED;
 	settings |= MGMT_SETTING_PAIRABLE;
+=======
+	BT_DBG("sock %pK hci%u", sk, index);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (lmp_ssp_capable(hdev))
 		settings |= MGMT_SETTING_SSP;
@@ -430,8 +434,12 @@ static u32 get_current_settings(struct hci_dev *hdev)
 	if (test_bit(HCI_SSP_ENABLED, &hdev->dev_flags))
 		settings |= MGMT_SETTING_SSP;
 
+<<<<<<< HEAD
 	if (test_bit(HCI_HS_ENABLED, &hdev->dev_flags))
 		settings |= MGMT_SETTING_HS;
+=======
+	BT_DBG("sk %pK", free_work->sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	return settings;
 }
@@ -443,8 +451,12 @@ static u8 *create_uuid16_list(struct hci_dev *hdev, u8 *data, ptrdiff_t len)
 	u8 *ptr = data, *uuids_start = NULL;
 	struct bt_uuid *uuid;
 
+<<<<<<< HEAD
 	if (len < 4)
 		return ptr;
+=======
+	BT_DBG("opcode %d, sk %pK", cmd->opcode, sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	list_for_each_entry(uuid, &hdev->uuids, list) {
 		u16 uuid16;
@@ -2161,6 +2173,23 @@ static void le_connect_complete_cb(struct hci_conn *conn, u8 status)
 
 	if (!status)
 		return;
+<<<<<<< HEAD
+=======
+	}
+
+	if (conn->type == LE_LINK)
+		smp_link_encrypt_cmplt(conn->l2cap_data, status,
+				status ? 0 : 1);
+	else
+		pairing_complete(cmd, status);
+}
+
+static void pairing_connect_complete_cb(struct hci_conn *conn, u8 status)
+{
+	struct pending_cmd *cmd;
+
+	BT_DBG("conn: %pK %u", conn, status);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	cmd = find_pairing(conn);
 	if (!cmd)

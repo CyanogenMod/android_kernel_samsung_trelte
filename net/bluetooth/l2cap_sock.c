@@ -34,9 +34,85 @@
 #include <net/bluetooth/l2cap.h>
 #include <net/bluetooth/smp.h>
 
+<<<<<<< HEAD
 static struct bt_sock_list l2cap_sk_list = {
 	.lock = __RW_LOCK_UNLOCKED(l2cap_sk_list.lock)
 };
+=======
+/* ---- L2CAP timers ---- */
+static void l2cap_sock_timeout(unsigned long arg)
+{
+	struct sock *sk = (struct sock *) arg;
+	int reason;
+
+	BT_DBG("sock %pK state %d", sk, sk->sk_state);
+
+	bh_lock_sock(sk);
+
+	if (sock_owned_by_user(sk)) {
+		/* sk is owned by user. Try again later */
+		l2cap_sock_set_timer(sk, HZ / 5);
+		bh_unlock_sock(sk);
+		sock_put(sk);
+		return;
+	}
+
+	if (sk->sk_state == BT_CONNECTED || sk->sk_state == BT_CONFIG)
+		reason = ECONNREFUSED;
+	else if (sk->sk_state == BT_CONNECT &&
+				l2cap_pi(sk)->sec_level != BT_SECURITY_SDP)
+		reason = ECONNREFUSED;
+	else
+		reason = ETIMEDOUT;
+
+	__l2cap_sock_close(sk, reason);
+
+	bh_unlock_sock(sk);
+
+	l2cap_sock_kill(sk);
+	sock_put(sk);
+}
+
+void l2cap_sock_set_timer(struct sock *sk, long timeout)
+{
+	BT_DBG("sk %pK state %d timeout %ld", sk, sk->sk_state, timeout);
+	sk_reset_timer(sk, &sk->sk_timer, jiffies + timeout);
+}
+
+void l2cap_sock_clear_timer(struct sock *sk)
+{
+	BT_DBG("sock %pK state %d", sk, sk->sk_state);
+	sk_stop_timer(sk, &sk->sk_timer);
+}
+
+int l2cap_sock_le_params_valid(struct bt_le_params *le_params)
+{
+	if (!le_params || le_params->latency > BT_LE_LATENCY_MAX ||
+			le_params->scan_window > BT_LE_SCAN_WINDOW_MAX ||
+			le_params->scan_interval < BT_LE_SCAN_INTERVAL_MIN ||
+			le_params->scan_window > le_params->scan_interval ||
+			le_params->interval_min < BT_LE_CONN_INTERVAL_MIN ||
+			le_params->interval_max > BT_LE_CONN_INTERVAL_MAX ||
+			le_params->interval_min > le_params->interval_max ||
+			le_params->supervision_timeout < BT_LE_SUP_TO_MIN ||
+			le_params->supervision_timeout > BT_LE_SUP_TO_MAX) {
+		return 0;
+	}
+
+	return 1;
+}
+
+int l2cap_sock_le_conn_update_params_valid(struct bt_le_params *le_params)
+{
+	if (!le_params || le_params->latency > BT_LE_LATENCY_MAX ||
+			le_params->interval_min < BT_LE_CONN_INTERVAL_MIN ||
+			le_params->interval_max > BT_LE_CONN_INTERVAL_MAX ||
+			le_params->interval_min > le_params->interval_max ||
+			le_params->supervision_timeout < BT_LE_SUP_TO_MIN ||
+			le_params->supervision_timeout > BT_LE_SUP_TO_MAX) {
+		return 0;
+	}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 static const struct proto_ops l2cap_sock_ops;
 static void l2cap_sock_init(struct sock *sk, struct sock *parent);
@@ -56,7 +132,7 @@ static int l2cap_sock_bind(struct socket *sock, struct sockaddr *addr, int alen)
 	struct sockaddr_l2 la;
 	int len, err = 0;
 
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	if (!addr || addr->sa_family != AF_BLUETOOTH)
 		return -EINVAL;
@@ -121,7 +197,12 @@ static int l2cap_sock_connect(struct socket *sock, struct sockaddr *addr,
 	struct sockaddr_l2 la;
 	int len, err = 0;
 
+<<<<<<< HEAD
 	BT_DBG("sk %p", sk);
+=======
+	BT_DBG("sk %pK type %d mode %d state %d", sk, sk->sk_type,
+		l2cap_pi(sk)->mode, sk->sk_state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!addr || alen < sizeof(addr->sa_family) ||
 	    addr->sa_family != AF_BLUETOOTH)
@@ -155,7 +236,7 @@ static int l2cap_sock_listen(struct socket *sock, int backlog)
 	struct l2cap_chan *chan = l2cap_pi(sk)->chan;
 	int err = 0;
 
-	BT_DBG("sk %p backlog %d", sk, backlog);
+	BT_DBG("sk %pK backlog %d", sk, backlog);
 
 	lock_sock(sk);
 
@@ -205,7 +286,7 @@ static int l2cap_sock_accept(struct socket *sock, struct socket *newsock,
 
 	timeo = sock_rcvtimeo(sk, flags & O_NONBLOCK);
 
-	BT_DBG("sk %p timeo %ld", sk, timeo);
+	BT_DBG("sk %pK timeo %ld", sk, timeo);
 
 	/* Wait for an incoming connection. (wake-one). */
 	add_wait_queue_exclusive(sk_sleep(sk), &wait);
@@ -243,7 +324,7 @@ static int l2cap_sock_accept(struct socket *sock, struct socket *newsock,
 
 	newsock->state = SS_CONNECTED;
 
-	BT_DBG("new socket %p", nsk);
+	BT_DBG("new socket %pK", nsk);
 
 done:
 	release_sock(sk);
@@ -257,7 +338,7 @@ static int l2cap_sock_getname(struct socket *sock, struct sockaddr *addr,
 	struct sock *sk = sock->sk;
 	struct l2cap_chan *chan = l2cap_pi(sk)->chan;
 
-	BT_DBG("sock %p, sk %p", sock, sk);
+	BT_DBG("sock %pK, sk %pK", sock, sk);
 
 	memset(la, 0, sizeof(struct sockaddr_l2));
 	addr->sa_family = AF_BLUETOOTH;
@@ -286,7 +367,7 @@ static int l2cap_sock_getsockopt_old(struct socket *sock, int optname,
 	int len, err = 0;
 	u32 opt;
 
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	if (get_user(len, optlen))
 		return -EFAULT;
@@ -373,7 +454,7 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname,
 	struct bt_power pwr;
 	int len, err = 0;
 
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	if (level == SOL_L2CAP)
 		return l2cap_sock_getsockopt_old(sock, optname, optval, optlen);
@@ -488,7 +569,7 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname,
 	int len, err = 0;
 	u32 opt;
 
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	lock_sock(sk);
 
@@ -590,7 +671,7 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname,
 	int len, err = 0;
 	u32 opt;
 
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	if (level == SOL_L2CAP)
 		return l2cap_sock_setsockopt_old(sock, optname, optval, optlen);
@@ -765,7 +846,7 @@ static int l2cap_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 	struct l2cap_chan *chan = l2cap_pi(sk)->chan;
 	int err;
 
-	BT_DBG("sock %p, sk %p", sock, sk);
+	BT_DBG("sock %pK, sk %pK", sock, sk);
 
 	err = sock_error(sk);
 	if (err)
@@ -847,7 +928,11 @@ static void l2cap_sock_kill(struct sock *sk)
 	if (!sock_flag(sk, SOCK_ZAPPED) || sk->sk_socket)
 		return;
 
+<<<<<<< HEAD
 	BT_DBG("sk %p state %s", sk, state_to_string(sk->sk_state));
+=======
+	BT_DBG("sk %pK state %d", sk, sk->sk_state);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	/* Kill poor orphan */
 
@@ -927,7 +1012,7 @@ static void l2cap_sock_cleanup_listen(struct sock *parent)
 {
 	struct sock *sk;
 
-	BT_DBG("parent %p", parent);
+	BT_DBG("parent %pK", parent);
 
 	/* Close not yet accepted channels */
 	while ((sk = bt_accept_dequeue(parent, NULL))) {
@@ -946,11 +1031,15 @@ static struct l2cap_chan *l2cap_sock_new_connection_cb(struct l2cap_chan *chan)
 {
 	struct sock *sk, *parent = chan->data;
 
+<<<<<<< HEAD
 	/* Check for backlog size */
 	if (sk_acceptq_is_full(parent)) {
 		BT_DBG("backlog full %d", parent->sk_ack_backlog);
 		return NULL;
 	}
+=======
+	BT_DBG("sk %pK state %d socket %pK", sk, sk->sk_state, sk->sk_socket);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	sk = l2cap_sock_alloc(sock_net(parent), NULL, BTPROTO_L2CAP,
 			      GFP_ATOMIC);
@@ -1006,8 +1095,12 @@ static void l2cap_sock_close_cb(struct l2cap_chan *chan)
 {
 	struct sock *sk = chan->data;
 
+<<<<<<< HEAD
 	l2cap_sock_kill(sk);
 }
+=======
+	BT_DBG("sock %pK, sk %pK", sock, sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 static void l2cap_sock_teardown_cb(struct l2cap_chan *chan, int err)
 {
@@ -1063,9 +1156,13 @@ static struct sk_buff *l2cap_sock_alloc_skb_cb(struct l2cap_chan *chan,
 	struct sk_buff *skb;
 	int err;
 
+<<<<<<< HEAD
 	l2cap_chan_unlock(chan);
 	skb = bt_skb_send_alloc(chan->sk, len, nb, &err);
 	l2cap_chan_lock(chan);
+=======
+	BT_DBG("sock %pK, sk %pK", sock, sk);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!skb)
 		return ERR_PTR(err);
@@ -1073,10 +1170,17 @@ static struct sk_buff *l2cap_sock_alloc_skb_cb(struct l2cap_chan *chan,
 	return skb;
 }
 
+<<<<<<< HEAD
 static void l2cap_sock_ready_cb(struct l2cap_chan *chan)
 {
 	struct sock *sk = chan->data;
 	struct sock *parent;
+=======
+	/* If matching socket found, request tear down */
+	BT_DBG("sock:%pK companion:%pK", sk, sk2);
+	if (sk2)
+		l2cap_sock_set_timer(sk2, 1);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	lock_sock(sk);
 
@@ -1116,7 +1220,7 @@ static struct l2cap_ops l2cap_chan_ops = {
 
 static void l2cap_sock_destruct(struct sock *sk)
 {
-	BT_DBG("sk %p", sk);
+	BT_DBG("sk %pK", sk);
 
 	if (l2cap_pi(sk)->chan)
 		l2cap_chan_put(l2cap_pi(sk)->chan);
@@ -1134,7 +1238,11 @@ static void l2cap_sock_init(struct sock *sk, struct sock *parent)
 	struct l2cap_pinfo *pi = l2cap_pi(sk);
 	struct l2cap_chan *chan = pi->chan;
 
+<<<<<<< HEAD
 	BT_DBG("sk %p", sk);
+=======
+	BT_DBG("sk %pK parent %pK", sk, parent);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (parent) {
 		struct l2cap_chan *pchan = l2cap_pi(parent)->chan;
@@ -1236,7 +1344,7 @@ static int l2cap_sock_create(struct net *net, struct socket *sock, int protocol,
 {
 	struct sock *sk;
 
-	BT_DBG("sock %p", sock);
+	BT_DBG("sock %pK", sock);
 
 	sock->state = SS_UNCONNECTED;
 

@@ -106,7 +106,23 @@ static int hidp_send_message(struct hidp_session *session, struct socket *sock,
 	struct sk_buff *skb;
 	struct sock *sk = sock->sk;
 
+<<<<<<< HEAD
 	BT_DBG("session %p data %p size %d", session, data, size);
+=======
+	BT_DBG("session %pK type %d code %d value %d", session, type, code, value);
+
+	if (type != EV_LED)
+		return -1;
+
+	newleds = (!!test_bit(LED_KANA,    dev->led) << 3) |
+		  (!!test_bit(LED_COMPOSE, dev->led) << 3) |
+		  (!!test_bit(LED_SCROLLL, dev->led) << 2) |
+		  (!!test_bit(LED_CAPSL,   dev->led) << 1) |
+		  (!!test_bit(LED_NUML,    dev->led));
+
+	if (session->leds == newleds)
+		return 0;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (atomic_read(&session->terminate))
 		return -EIO;
@@ -229,7 +245,34 @@ static void hidp_input_report(struct hidp_session *session, struct sk_buff *skb)
 	input_sync(dev);
 }
 
+<<<<<<< HEAD
 static int hidp_send_report(struct hidp_session *session, struct hid_report *report)
+=======
+static int __hidp_send_ctrl_message(struct hidp_session *session,
+			unsigned char hdr, unsigned char *data, int size)
+{
+	struct sk_buff *skb;
+
+	BT_DBG("session %pK data %pK size %d", session, data, size);
+
+	skb = alloc_skb(size + 1, GFP_ATOMIC);
+	if (!skb) {
+		BT_ERR("Can't allocate memory for new frame");
+		return -ENOMEM;
+	}
+
+	*skb_put(skb, 1) = hdr;
+	if (data && size > 0)
+		memcpy(skb_put(skb, size), data, size);
+
+	skb_queue_tail(&session->ctrl_transmit, skb);
+
+	return 0;
+}
+
+static inline int hidp_send_ctrl_message(struct hidp_session *session,
+			unsigned char hdr, unsigned char *data, int size)
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 {
 	unsigned char buf[32], hdr;
 	int rsize;
@@ -255,8 +298,12 @@ static int hidp_get_raw_report(struct hid_device *hid,
 	int numbered_reports = hid->report_enum[report_type].numbered;
 	int ret;
 
+<<<<<<< HEAD
 	if (atomic_read(&session->terminate))
 		return -EIO;
+=======
+	BT_DBG("session %pK hid %pK data %pK size %d", session, session->hid, data, size);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (report_type) {
 	case HID_FEATURE_REPORT:
@@ -409,8 +456,12 @@ static void hidp_del_timer(struct hidp_session *session)
 static void hidp_process_handshake(struct hidp_session *session,
 					unsigned char param)
 {
+<<<<<<< HEAD
 	BT_DBG("session %p param 0x%02x", session, param);
 	session->output_report_success = 0; /* default condition */
+=======
+	BT_DBG("session %pK param 0x%02x", session, param);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (param) {
 	case HIDP_HSHK_SUCCESSFUL:
@@ -452,7 +503,7 @@ static void hidp_process_handshake(struct hidp_session *session,
 static void hidp_process_hid_control(struct hidp_session *session,
 					unsigned char param)
 {
-	BT_DBG("session %p param 0x%02x", session, param);
+	BT_DBG("session %pK param 0x%02x", session, param);
 
 	if (param == HIDP_CTRL_VIRTUAL_CABLE_UNPLUG) {
 		/* Flush the transmit queues */
@@ -467,8 +518,12 @@ static void hidp_process_hid_control(struct hidp_session *session,
 static int hidp_process_data(struct hidp_session *session, struct sk_buff *skb,
 				unsigned char param)
 {
+<<<<<<< HEAD
 	int done_with_skb = 1;
 	BT_DBG("session %p skb %p len %d param 0x%02x", session, skb, skb->len, param);
+=======
+	BT_DBG("session %pK skb %pK len %d param 0x%02x", session, skb, skb->len, param);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	switch (param) {
 	case HIDP_DATA_RTYPE_INPUT:
@@ -512,7 +567,7 @@ static void hidp_recv_ctrl_frame(struct hidp_session *session,
 	unsigned char hdr, type, param;
 	int free_skb = 1;
 
-	BT_DBG("session %p skb %p len %d", session, skb, skb->len);
+	BT_DBG("session %pK skb %pK len %d", session, skb, skb->len);
 
 	hdr = skb->data[0];
 	skb_pull(skb, 1);
@@ -548,7 +603,7 @@ static void hidp_recv_intr_frame(struct hidp_session *session,
 {
 	unsigned char hdr;
 
-	BT_DBG("session %p skb %p len %d", session, skb, skb->len);
+	BT_DBG("session %pK skb %pK len %d", session, skb, skb->len);
 
 	hdr = skb->data[0];
 	skb_pull(skb, 1);
@@ -575,7 +630,7 @@ static int hidp_send_frame(struct socket *sock, unsigned char *data, int len)
 	struct kvec iv = { data, len };
 	struct msghdr msg;
 
-	BT_DBG("sock %p data %p len %d", sock, data, len);
+	BT_DBG("sock %pK data %pK len %d", sock, data, len);
 
 	if (!len)
 		return 0;
@@ -593,7 +648,7 @@ static void hidp_process_transmit(struct hidp_session *session,
 	struct sk_buff *skb;
 	int ret;
 
-	BT_DBG("session %p", session);
+	BT_DBG("session %pK", session);
 
 	while ((skb = skb_dequeue(transmit))) {
 		ret = hidp_send_frame(sock, skb->data, skb->len);
@@ -611,6 +666,127 @@ static void hidp_process_transmit(struct hidp_session *session,
 	}
 }
 
+<<<<<<< HEAD
+=======
+static int hidp_session(void *arg)
+{
+	struct hidp_session *session = arg;
+	struct sock *ctrl_sk = session->ctrl_sock->sk;
+	struct sock *intr_sk = session->intr_sock->sk;
+	struct sk_buff *skb;
+	int vendor = 0x0000, product = 0x0000;
+	wait_queue_t ctrl_wait, intr_wait;
+
+	BT_DBG("session %pK", session);
+
+	if (session->input) {
+		vendor  = session->input->id.vendor;
+		product = session->input->id.product;
+	}
+
+	if (session->hid) {
+		vendor  = session->hid->vendor;
+		product = session->hid->product;
+	}
+
+	daemonize("khidpd_%04x%04x", vendor, product);
+	set_user_nice(current, -15);
+
+	init_waitqueue_entry(&ctrl_wait, current);
+	init_waitqueue_entry(&intr_wait, current);
+	add_wait_queue(sk_sleep(ctrl_sk), &ctrl_wait);
+	add_wait_queue(sk_sleep(intr_sk), &intr_wait);
+	while (!atomic_read(&session->terminate)) {
+		set_current_state(TASK_INTERRUPTIBLE);
+
+		if (ctrl_sk->sk_state != BT_CONNECTED ||
+				intr_sk->sk_state != BT_CONNECTED)
+			break;
+
+		while ((skb = skb_dequeue(&ctrl_sk->sk_receive_queue))) {
+			skb_orphan(skb);
+			if (!skb_linearize(skb))
+				hidp_recv_ctrl_frame(session, skb);
+			else
+				kfree_skb(skb);
+		}
+
+		while ((skb = skb_dequeue(&intr_sk->sk_receive_queue))) {
+			skb_orphan(skb);
+			if (!skb_linearize(skb))
+				hidp_recv_intr_frame(session, skb);
+			else
+				kfree_skb(skb);
+		}
+
+		hidp_process_transmit(session);
+
+		schedule();
+	}
+	set_current_state(TASK_RUNNING);
+	remove_wait_queue(sk_sleep(intr_sk), &intr_wait);
+	remove_wait_queue(sk_sleep(ctrl_sk), &ctrl_wait);
+
+	down_write(&hidp_session_sem);
+
+	hidp_del_timer(session);
+
+	if (session->input) {
+		input_unregister_device(session->input);
+		session->input = NULL;
+	}
+
+	if (session->hid) {
+		hid_destroy_device(session->hid);
+		session->hid = NULL;
+	}
+
+	/* Wakeup user-space polling for socket errors */
+	session->intr_sock->sk->sk_err = EUNATCH;
+	session->ctrl_sock->sk->sk_err = EUNATCH;
+
+	hidp_schedule(session);
+
+	fput(session->intr_sock->file);
+
+	wait_event_timeout(*(sk_sleep(ctrl_sk)),
+		(ctrl_sk->sk_state == BT_CLOSED), msecs_to_jiffies(500));
+
+	fput(session->ctrl_sock->file);
+
+	__hidp_unlink_session(session);
+
+	up_write(&hidp_session_sem);
+
+	kfree(session);
+	return 0;
+}
+
+static struct hci_conn *hidp_get_connection(struct hidp_session *session)
+{
+	bdaddr_t *src = &bt_sk(session->ctrl_sock->sk)->src;
+	bdaddr_t *dst = &bt_sk(session->ctrl_sock->sk)->dst;
+	struct hci_conn *conn;
+	struct hci_dev *hdev;
+
+	hdev = hci_get_route(dst, src);
+	if (!hdev)
+		return NULL;
+
+	hci_dev_lock_bh(hdev);
+	conn = hci_conn_hash_lookup_ba(hdev, ACL_LINK, dst);
+	if (conn) {
+		conn->hidp_session_valid = true;
+		hci_conn_hold_device(conn);
+	}
+	hci_dev_unlock_bh(hdev);
+
+	hci_dev_put(hdev);
+
+	return conn;
+}
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 static int hidp_setup_input(struct hidp_session *session,
 				struct hidp_connadd_req *req)
 {
@@ -804,6 +980,7 @@ static int hidp_session_dev_init(struct hidp_session *session,
 	return 0;
 }
 
+<<<<<<< HEAD
 /* destroy session devices */
 static void hidp_session_dev_destroy(struct hidp_session *session)
 {
@@ -811,6 +988,9 @@ static void hidp_session_dev_destroy(struct hidp_session *session)
 		put_device(&session->hid->dev);
 	else if (session->input)
 		input_put_device(session->input);
+=======
+	BT_DBG("rd_data %pK rd_size %d", req->rd_data, req->rd_size);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	kfree(session->rd_data);
 	session->rd_data = NULL;

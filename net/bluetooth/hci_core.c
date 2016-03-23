@@ -771,7 +771,11 @@ struct inquiry_entry *hci_inquiry_cache_lookup(struct hci_dev *hdev,
 	struct discovery_state *cache = &hdev->discovery;
 	struct inquiry_entry *e;
 
+<<<<<<< HEAD
 	BT_DBG("cache %p, %pMR", cache, bdaddr);
+=======
+	BT_DBG("cache %pK", cache);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	list_for_each_entry(e, &cache->all, all) {
 		if (!bacmp(&e->data.bdaddr, bdaddr))
@@ -787,7 +791,11 @@ struct inquiry_entry *hci_inquiry_cache_lookup_unknown(struct hci_dev *hdev,
 	struct discovery_state *cache = &hdev->discovery;
 	struct inquiry_entry *e;
 
+<<<<<<< HEAD
 	BT_DBG("cache %p, %pMR", cache, bdaddr);
+=======
+	BT_DBG("cache %pK, %s", cache, batostr(bdaddr));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	list_for_each_entry(e, &cache->unknown, list) {
 		if (!bacmp(&e->data.bdaddr, bdaddr))
@@ -841,12 +849,16 @@ bool hci_inquiry_cache_update(struct hci_dev *hdev, struct inquiry_data *data,
 	struct discovery_state *cache = &hdev->discovery;
 	struct inquiry_entry *ie;
 
+<<<<<<< HEAD
 	BT_DBG("cache %p, %pMR", cache, &data->bdaddr);
 
 	hci_remove_remote_oob_data(hdev, &data->bdaddr);
 
 	if (ssp)
 		*ssp = data->ssp_mode;
+=======
+	BT_DBG("cache %pK, %s", cache, batostr(&data->bdaddr));
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	ie = hci_inquiry_cache_lookup(hdev, &data->bdaddr);
 	if (ie) {
@@ -917,7 +929,7 @@ static int inquiry_cache_dump(struct hci_dev *hdev, int num, __u8 *buf)
 		copied++;
 	}
 
-	BT_DBG("cache %p, copied %d", cache, copied);
+	BT_DBG("cache %pK, copied %d", cache, copied);
 	return copied;
 }
 
@@ -1114,7 +1126,7 @@ int hci_dev_open(__u16 dev)
 	if (!hdev)
 		return -ENODEV;
 
-	BT_DBG("%s %p", hdev->name, hdev);
+	BT_DBG("%s %pK", hdev->name, hdev);
 
 	hci_req_lock(hdev);
 
@@ -1199,7 +1211,13 @@ done:
 
 static int hci_dev_do_close(struct hci_dev *hdev)
 {
+<<<<<<< HEAD
 	BT_DBG("%s %p", hdev->name, hdev);
+=======
+	unsigned long keepflags = 0;
+
+	BT_DBG("%s %pK", hdev->name, hdev);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	cancel_work_sync(&hdev->le_scan);
 
@@ -1543,7 +1561,7 @@ static int hci_rfkill_set_block(void *data, bool blocked)
 {
 	struct hci_dev *hdev = data;
 
-	BT_DBG("%p name %s blocked %d", hdev, hdev->name, blocked);
+	BT_DBG("%pK name %s blocked %d", hdev, hdev->name, blocked);
 
 	if (!blocked)
 		return 0;
@@ -2096,7 +2114,12 @@ int hci_le_scan(struct hci_dev *hdev, u8 type, u16 interval, u16 window,
 {
 	struct le_scan_params *param = &hdev->le_scan_params;
 
+<<<<<<< HEAD
 	BT_DBG("%s", hdev->name);
+=======
+	BT_DBG("%pK name %s bus %d owner %pK", hdev, hdev->name,
+						hdev->bus, hdev->owner);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (test_bit(HCI_LE_PERIPHERAL, &hdev->dev_flags))
 		return -ENOTSUPP;
@@ -2271,7 +2294,7 @@ void hci_unregister_dev(struct hci_dev *hdev)
 {
 	int i, id;
 
-	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
+	BT_DBG("%pK name %s bus %d", hdev, hdev->name, hdev->bus);
 
 	set_bit(HCI_UNREGISTER, &hdev->dev_flags);
 
@@ -2530,9 +2553,58 @@ EXPORT_SYMBOL(hci_recv_stream_fragment);
 
 /* ---- Interface to upper protocols ---- */
 
+<<<<<<< HEAD
+=======
+/* Register/Unregister protocols.
+ * hci_task_lock is used to ensure that no tasks are running. */
+int hci_register_proto(struct hci_proto *hp)
+{
+	int err = 0;
+
+	BT_DBG("%pK name %s id %d", hp, hp->name, hp->id);
+
+	if (hp->id >= HCI_MAX_PROTO)
+		return -EINVAL;
+
+	write_lock_bh(&hci_task_lock);
+
+	if (!hci_proto[hp->id])
+		hci_proto[hp->id] = hp;
+	else
+		err = -EEXIST;
+
+	write_unlock_bh(&hci_task_lock);
+
+	return err;
+}
+EXPORT_SYMBOL(hci_register_proto);
+
+int hci_unregister_proto(struct hci_proto *hp)
+{
+	int err = 0;
+
+	BT_DBG("%pK name %s id %d", hp, hp->name, hp->id);
+
+	if (hp->id >= HCI_MAX_PROTO)
+		return -EINVAL;
+
+	write_lock_bh(&hci_task_lock);
+
+	if (hci_proto[hp->id])
+		hci_proto[hp->id] = NULL;
+	else
+		err = -ENOENT;
+
+	write_unlock_bh(&hci_task_lock);
+
+	return err;
+}
+EXPORT_SYMBOL(hci_unregister_proto);
+
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 int hci_register_cb(struct hci_cb *cb)
 {
-	BT_DBG("%p name %s", cb, cb->name);
+	BT_DBG("%pK name %s", cb, cb->name);
 
 	write_lock(&hci_cb_list_lock);
 	list_add(&cb->list, &hci_cb_list);
@@ -2544,7 +2616,7 @@ EXPORT_SYMBOL(hci_register_cb);
 
 int hci_unregister_cb(struct hci_cb *cb)
 {
-	BT_DBG("%p name %s", cb, cb->name);
+	BT_DBG("%pK name %s", cb, cb->name);
 
 	write_lock(&hci_cb_list_lock);
 	list_del(&cb->list);
@@ -2554,9 +2626,27 @@ int hci_unregister_cb(struct hci_cb *cb)
 }
 EXPORT_SYMBOL(hci_unregister_cb);
 
+<<<<<<< HEAD
 static int hci_send_frame(struct sk_buff *skb)
 {
 	struct hci_dev *hdev = (struct hci_dev *) skb->dev;
+=======
+int hci_register_amp(struct amp_mgr_cb *cb)
+{
+	BT_DBG("%pK", cb);
+
+	write_lock_bh(&amp_mgr_cb_list_lock);
+	list_add(&cb->list, &amp_mgr_cb_list);
+	write_unlock_bh(&amp_mgr_cb_list_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(hci_register_amp);
+
+int hci_unregister_amp(struct amp_mgr_cb *cb)
+{
+	BT_DBG("%pK", cb);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!hdev) {
 		kfree_skb(skb);
@@ -2747,8 +2837,12 @@ static void hci_queue_acl(struct hci_chan *chan, struct sk_buff_head *queue,
 	struct hci_dev *hdev = conn->hdev;
 	struct sk_buff *list;
 
+<<<<<<< HEAD
 	skb->len = skb_headlen(skb);
 	skb->data_len = 0;
+=======
+	BT_DBG("%s conn %pK chan %pK flags 0x%x", hdev->name, conn, chan, flags);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	bt_cb(skb)->pkt_type = HCI_ACLDATA_PKT;
 
@@ -2767,12 +2861,12 @@ static void hci_queue_acl(struct hci_chan *chan, struct sk_buff_head *queue,
 	list = skb_shinfo(skb)->frag_list;
 	if (!list) {
 		/* Non fragmented */
-		BT_DBG("%s nonfrag skb %p len %d", hdev->name, skb, skb->len);
+		BT_DBG("%s nonfrag skb %pK len %d", hdev->name, skb, skb->len);
 
 		skb_queue_tail(queue, skb);
 	} else {
 		/* Fragmented */
-		BT_DBG("%s frag %p len %d", hdev->name, skb, skb->len);
+		BT_DBG("%s frag %pK len %d", hdev->name, skb, skb->len);
 
 		skb_shinfo(skb)->frag_list = NULL;
 
@@ -2790,7 +2884,7 @@ static void hci_queue_acl(struct hci_chan *chan, struct sk_buff_head *queue,
 			bt_cb(skb)->pkt_type = HCI_ACLDATA_PKT;
 			hci_add_acl_hdr(skb, conn->handle, flags);
 
-			BT_DBG("%s frag %p len %d", hdev->name, skb, skb->len);
+			BT_DBG("%s frag %pK len %d", hdev->name, skb, skb->len);
 
 			__skb_queue_tail(queue, skb);
 		} while (list);
@@ -2835,6 +2929,58 @@ void hci_send_sco(struct hci_conn *conn, struct sk_buff *skb)
 }
 
 /* ---- HCI TX task (outgoing data) ---- */
+<<<<<<< HEAD
+=======
+/* HCI ACL Connection scheduler */
+static inline struct hci_conn *hci_low_sent_acl(struct hci_dev *hdev,
+								int *quote)
+{
+	struct hci_conn_hash *h = &hdev->conn_hash;
+	struct hci_conn *conn = NULL;
+	int num = 0, min = ~0, conn_num = 0;
+	struct list_head *p;
+
+	/* We don't have to lock device here. Connections are always
+	 * added and removed with TX task disabled. */
+	list_for_each(p, &h->list) {
+		struct hci_conn *c;
+		c = list_entry(p, struct hci_conn, list);
+		if (c->type == ACL_LINK)
+			conn_num++;
+
+		if (skb_queue_empty(&c->data_q))
+			continue;
+
+		if (c->state != BT_CONNECTED && c->state != BT_CONFIG)
+			continue;
+
+		num++;
+
+		if (c->sent < min) {
+			min  = c->sent;
+			conn = c;
+		}
+	}
+
+	if (conn) {
+		int cnt, q;
+		cnt = hdev->acl_cnt;
+		q = cnt / num;
+		*quote = q ? q : 1;
+	} else
+		*quote = 0;
+
+	if ((*quote == hdev->acl_cnt) &&
+		(conn->sent == (hdev->acl_pkts - 1)) &&
+		(conn_num > 1)) {
+			*quote = 0;
+			conn = NULL;
+	}
+
+	BT_DBG("conn %pK quote %d", conn, *quote);
+	return conn;
+}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 /* HCI Connection scheduler */
 static struct hci_conn *hci_low_sent(struct hci_dev *hdev, __u8 type,
@@ -2893,7 +3039,7 @@ static struct hci_conn *hci_low_sent(struct hci_dev *hdev, __u8 type,
 	} else
 		*quote = 0;
 
-	BT_DBG("conn %p quote %d", conn, *quote);
+	BT_DBG("conn %pK quote %d", conn, *quote);
 	return conn;
 }
 
@@ -3083,11 +3229,15 @@ static void hci_sched_acl_pkt(struct hci_dev *hdev)
 			BT_DBG("chan %p skb %p len %d priority %u", chan, skb,
 			       skb->len, skb->priority);
 
+<<<<<<< HEAD
 			/* Stop if priority has changed */
 			if (skb->priority < priority)
 				break;
 
 			skb = skb_dequeue(&chan->data_q);
+=======
+			BT_DBG("skb %pK len %d", skb, skb->len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			hci_conn_enter_active_mode(chan->conn,
 						   bt_cb(skb)->force_active);
@@ -3196,7 +3346,7 @@ static void hci_sched_sco(struct hci_dev *hdev)
 
 	while (hdev->sco_cnt && (conn = hci_low_sent(hdev, SCO_LINK, &quote))) {
 		while (quote-- && (skb = skb_dequeue(&conn->data_q))) {
-			BT_DBG("skb %p len %d", skb, skb->len);
+			BT_DBG("skb %pK len %d", skb, skb->len);
 			hci_send_frame(skb);
 
 			conn->sent++;
@@ -3220,7 +3370,7 @@ static void hci_sched_esco(struct hci_dev *hdev)
 	while (hdev->sco_cnt && (conn = hci_low_sent(hdev, ESCO_LINK,
 						     &quote))) {
 		while (quote-- && (skb = skb_dequeue(&conn->data_q))) {
-			BT_DBG("skb %p len %d", skb, skb->len);
+			BT_DBG("skb %pK len %d", skb, skb->len);
 			hci_send_frame(skb);
 
 			conn->sent++;
@@ -3250,6 +3400,7 @@ static void hci_sched_le(struct hci_dev *hdev)
 	}
 
 	cnt = hdev->le_pkts ? hdev->le_cnt : hdev->acl_cnt;
+<<<<<<< HEAD
 	tmp = cnt;
 	while (cnt && (chan = hci_chan_sent(hdev, LE_LINK, &quote))) {
 		u32 priority = (skb_peek(&chan->data_q))->priority;
@@ -3262,6 +3413,11 @@ static void hci_sched_le(struct hci_dev *hdev)
 				break;
 
 			skb = skb_dequeue(&chan->data_q);
+=======
+	while (cnt && (conn = hci_low_sent(hdev, LE_LINK, &quote))) {
+		while (quote-- && (skb = skb_dequeue(&conn->data_q))) {
+			BT_DBG("skb %pK len %d", skb, skb->len);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 			hci_send_frame(skb);
 			hdev->le_last_tx = jiffies;

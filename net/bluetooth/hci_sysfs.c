@@ -103,7 +103,7 @@ void hci_conn_init_sysfs(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	conn->dev.type = &bt_link;
 	conn->dev.class = bt_class;
@@ -114,9 +114,13 @@ void hci_conn_init_sysfs(struct hci_conn *conn)
 
 void hci_conn_add_sysfs(struct hci_conn *conn)
 {
+<<<<<<< HEAD
 	struct hci_dev *hdev = conn->hdev;
 
 	BT_DBG("conn %p", conn);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	dev_set_name(&conn->dev, "%s:%d", hdev->name, conn->handle);
 
@@ -130,6 +134,7 @@ void hci_conn_add_sysfs(struct hci_conn *conn)
 
 void hci_conn_del_sysfs(struct hci_conn *conn)
 {
+<<<<<<< HEAD
 	struct hci_dev *hdev = conn->hdev;
 
 	if (!device_is_registered(&conn->dev))
@@ -146,6 +151,9 @@ void hci_conn_del_sysfs(struct hci_conn *conn)
 	}
 
 	device_del(&conn->dev);
+=======
+	BT_DBG("conn %pK", conn);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	hci_dev_put(hdev);
 }
@@ -506,6 +514,7 @@ static int auto_accept_delay_set(void *data, u64 val)
 {
 	struct hci_dev *hdev = data;
 
+<<<<<<< HEAD
 	hci_dev_lock(hdev);
 
 	hdev->auto_accept_delay = val;
@@ -534,6 +543,9 @@ DEFINE_SIMPLE_ATTRIBUTE(auto_accept_delay_fops, auto_accept_delay_get,
 void hci_init_sysfs(struct hci_dev *hdev)
 {
 	struct device *dev = &hdev->dev;
+=======
+	BT_DBG("%pK name %s bus %d", hdev, hdev->name, hdev->bus);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	dev->type = &bt_host;
 	dev->class = bt_class;
@@ -577,7 +589,7 @@ int hci_add_sysfs(struct hci_dev *hdev)
 
 void hci_del_sysfs(struct hci_dev *hdev)
 {
-	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
+	BT_DBG("%pK name %s bus %d", hdev, hdev->name, hdev->bus);
 
 	debugfs_remove_recursive(hdev->debugfs);
 

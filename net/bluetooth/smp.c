@@ -56,7 +56,7 @@ static int smp_e(struct crypto_blkcipher *tfm, const u8 *k, u8 *r)
 	unsigned char iv[128];
 
 	if (tfm == NULL) {
-		BT_ERR("tfm %p", tfm);
+		BT_ERR("tfm %pK", tfm);
 		return -EINVAL;
 	}
 
@@ -574,7 +574,7 @@ static u8 smp_cmd_pairing_req(struct l2cap_conn *conn, struct sk_buff *skb)
 	u8 auth = SMP_AUTH_NONE;
 	int ret;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	if (conn->hcon->link_mode & HCI_LM_MASTER)
 		return SMP_CMD_NOTSUPP;
@@ -628,7 +628,7 @@ static u8 smp_cmd_pairing_rsp(struct l2cap_conn *conn, struct sk_buff *skb)
 	u8 key_size, auth = SMP_AUTH_NONE;
 	int ret;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	if (!(conn->hcon->link_mode & HCI_LM_MASTER))
 		return SMP_CMD_NOTSUPP;
@@ -674,7 +674,7 @@ static u8 smp_cmd_pairing_confirm(struct l2cap_conn *conn, struct sk_buff *skb)
 	struct smp_chan *smp = conn->smp_chan;
 	struct hci_dev *hdev = conn->hcon->hdev;
 
-	BT_DBG("conn %p %s", conn, conn->hcon->out ? "master" : "slave");
+	BT_DBG("conn %pK %s", conn, conn->hcon->out ? "master" : "slave");
 
 	memcpy(smp->pcnf, skb->data, sizeof(smp->pcnf));
 	skb_pull(skb, sizeof(smp->pcnf));
@@ -696,8 +696,42 @@ static u8 smp_cmd_pairing_confirm(struct l2cap_conn *conn, struct sk_buff *skb)
 
 static u8 smp_cmd_pairing_random(struct l2cap_conn *conn, struct sk_buff *skb)
 {
+<<<<<<< HEAD
 	struct smp_chan *smp = conn->smp_chan;
 	struct hci_dev *hdev = conn->hcon->hdev;
+=======
+	struct hci_conn *hcon = conn->hcon;
+	struct crypto_blkcipher *tfm = hcon->hdev->tfm;
+	int ret;
+	u8 key[16], res[16], random[16], confirm[16];
+
+	swap128(skb->data, random);
+	skb_pull(skb, sizeof(random));
+
+	if (conn->hcon->out)
+		ret = smp_c1(tfm, hcon->tk, random, hcon->preq, hcon->prsp, 0,
+				conn->src, hcon->dst_type, conn->dst,
+				res);
+	else
+		ret = smp_c1(tfm, hcon->tk, random, hcon->preq, hcon->prsp,
+				hcon->dst_type, conn->dst, 0, conn->src,
+				res);
+	if (ret)
+		return SMP_UNSPECIFIED;
+
+	BT_DBG("conn %pK %s", conn, conn->hcon->out ? "master" : "slave");
+
+	swap128(res, confirm);
+
+	if (memcmp(hcon->pcnf, confirm, sizeof(hcon->pcnf)) != 0) {
+		BT_ERR("Pairing failed (confirmation values mismatch)");
+		return SMP_CONFIRM_FAILED;
+	}
+
+	if (conn->hcon->out) {
+		u8 stk[16], rand[8];
+		__le16 ediv;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	BT_DBG("conn %p", conn);
 
@@ -737,7 +771,7 @@ static u8 smp_cmd_security_req(struct l2cap_conn *conn, struct sk_buff *skb)
 	struct hci_conn *hcon = conn->hcon;
 	struct smp_chan *smp;
 
-	BT_DBG("conn %p", conn);
+	BT_DBG("conn %pK", conn);
 
 	hcon->pending_sec_level = authreq_to_seclevel(rp->auth_req);
 
@@ -768,7 +802,12 @@ int smp_conn_security(struct hci_conn *hcon, __u8 sec_level)
 	struct smp_chan *smp = conn->smp_chan;
 	__u8 authreq;
 
+<<<<<<< HEAD
 	BT_DBG("conn %p hcon %p level 0x%2.2x", conn, hcon, sec_level);
+=======
+	BT_DBG("conn %pK hcon %pK %d req: %d",
+			conn, hcon, hcon->sec_level, sec_level);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	if (!test_bit(HCI_LE_ENABLED, &hcon->hdev->dev_flags))
 		return 1;
@@ -819,7 +858,18 @@ static int smp_cmd_encrypt_info(struct l2cap_conn *conn, struct sk_buff *skb)
 
 	skb_pull(skb, sizeof(*rp));
 
+<<<<<<< HEAD
 	memcpy(smp->tk, rp->ltk, sizeof(smp->tk));
+=======
+	BT_DBG("conn %pK", conn);
+
+	memset(rand, 0, sizeof(rand));
+
+	err = hci_add_ltk(hcon->hdev, 0, conn->dst, hcon->dst_type,
+						0, 0, 0, rand, rp->ltk);
+	if (err)
+		return SMP_UNSPECIFIED;
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 
 	return 0;
 }
@@ -854,6 +904,10 @@ int smp_sig_channel(struct l2cap_conn *conn, struct sk_buff *skb)
 	if (!test_bit(HCI_LE_ENABLED, &conn->hcon->hdev->dev_flags)) {
 		err = -ENOTSUPP;
 		reason = SMP_PAIRING_NOTSUPP;
+<<<<<<< HEAD
+=======
+		BT_ERR("SMP_PAIRING_NOTSUPP %pK", hcon->hdev->tfm);
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
 		goto done;
 	}
 
@@ -936,7 +990,7 @@ int smp_distribute_keys(struct l2cap_conn *conn, __u8 force)
 	struct smp_chan *smp = conn->smp_chan;
 	__u8 *keydist;
 
-	BT_DBG("conn %p force %d", conn, force);
+	BT_DBG("conn %pK force %d", conn, force);
 
 	if (!test_bit(HCI_CONN_LE_SMP_PEND, &conn->hcon->flags))
 		return 0;
@@ -1023,3 +1077,42 @@ int smp_distribute_keys(struct l2cap_conn *conn, __u8 force)
 
 	return 0;
 }
+<<<<<<< HEAD
+=======
+
+int smp_link_encrypt_cmplt(struct l2cap_conn *conn, u8 status, u8 encrypt)
+{
+	struct hci_conn *hcon = conn->hcon;
+
+	BT_DBG("smp: %d %d %d", status, encrypt, hcon->sec_req);
+
+	clear_bit(HCI_CONN_ENCRYPT_PEND, &hcon->pend);
+
+	if (!status && encrypt && hcon->sec_level < hcon->pending_sec_level)
+		hcon->sec_level = hcon->pending_sec_level;
+
+	if (!status && encrypt && !hcon->sec_req)
+		return smp_distribute_keys(conn, 0);
+
+	/* Fall back to Pairing request if failed a Link Security request */
+	else if (hcon->sec_req  && (status || !encrypt))
+		smp_conn_security(conn, hcon->pending_sec_level);
+
+	hci_conn_put(hcon);
+
+	return 0;
+}
+
+void smp_timeout(unsigned long arg)
+{
+	struct l2cap_conn *conn = (void *) arg;
+	u8 reason = SMP_UNSPECIFIED;
+
+	BT_DBG("%pK", conn);
+
+	smp_send_cmd(conn, SMP_CMD_PAIRING_FAIL, sizeof(reason), &reason);
+	clear_bit(HCI_CONN_ENCRYPT_PEND, &conn->hcon->pend);
+	mgmt_auth_failed(conn->hcon->hdev->id, conn->dst, SMP_UNSPECIFIED);
+	hci_conn_put(conn->hcon);
+}
+>>>>>>> 017d9f3... Bluetooth: Replace %p with %pK
