@@ -26,7 +26,6 @@
 #include <net/ping.h>
 #include <net/tcp_memcontrol.h>
 
-static int zero;
 static int one = 1;
 static int four = 4;
 static int tcp_retr1_max = 255;
